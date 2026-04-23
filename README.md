@@ -17,15 +17,21 @@ https://<your-github-username>.github.io/macro-brief/
 ```
 macro-brief/
 ├── README.md
+├── .github/
+│   └── workflows/
+│       └── fetch-live.yml      <-- GitHub Action that refreshes live.json
+├── scripts/
+│   └── fetch_live.py           <-- Python fetcher used by the Action
 └── docs/                       <-- GitHub Pages serves this folder
     ├── index.html              <-- app shell (tabs, panels)
     ├── styles.css              <-- dark theme + grid/chips/tooltip
     ├── app.js                  <-- wiring (tabs, data load, brief reader, live refresh)
     ├── chart.js                <-- Tilt/Flows SVG chart (data-driven)
-    ├── live.js                 <-- CORS-safe fetchers (FRED / Yahoo / Stooq / CoinGecko)
+    ├── live.js                 <-- loader that reads data/live.json
     ├── data/
     │   ├── history.json        <-- weekly allocation tilts + representative index values
-    │   └── flows.json          <-- weekly net fund flows ($B)
+    │   ├── flows.json          <-- weekly net fund flows ($B)
+    │   └── live.json           <-- pre-fetched live quotes (rewritten by the Action)
     └── briefs/
         ├── index.json          <-- newest-first listing
         └── 2026-04-20.md       <-- one markdown file per brief
@@ -96,15 +102,27 @@ Or use any static server (`npx serve`, VS Code Live Server, etc.).
 ## Tabs
 
 - **Chart** — the full allocation history. Toggle between **Tilt** (allocation score, −1 to +1) and **Flows** (weekly net fund flows in $B). Filter by group, toggle individual assets on/off.
-- **Live data** — current prices/yields/spreads pulled in the browser from public CORS endpoints (FRED CSV, Yahoo Finance chart API, Stooq, CoinGecko). No API keys. Click **Refresh now** to re-fetch.
+- **Live data** — current prices/yields/spreads read from `docs/data/live.json`, which is rewritten every 30 minutes during US market hours by a GitHub Action. Click **Reload** to re-read the file.
 - **This week's brief** — the full markdown text of the latest brief. Click any prior brief in the history list to load it.
 - **About** — data sources, update cadence, link back to repo.
 
-## Live data sources
+## Live data pipeline
+
+The Live Data tab does **not** fetch from FRED or Yahoo in the browser. Those endpoints don't send the CORS headers browsers need, so a naive client-side fetcher fails for almost every asset.
+
+Instead, a GitHub Action (`.github/workflows/fetch-live.yml`) runs `scripts/fetch_live.py` on GitHub's servers every 30 minutes during US market hours, writes the result to `docs/data/live.json`, and commits the change back to main. The frontend just reads that file. No CORS, no keys, no backend to host.
+
+**Schedule:** `*/30 13-21 * * 1-5` (every 30 min, 13:00–21:00 UTC, Mon–Fri — covers 09:30 ET open through 17:00 ET / 16:00 EDT close).
+
+**Manual trigger:** Repo → Actions tab → "Refresh live market data" workflow → "Run workflow" button. Useful after weekend or holiday closures.
+
+**First deploy:** `live.json` ships as a placeholder. The Live tab shows a "No live data yet" message until the first Action run completes. Dispatch the workflow manually once after pushing to get instant data.
+
+### Sources
 
 | Asset | Primary | Fallback |
 |---|---|---|
-| S&P 500 | Yahoo `^GSPC` | — |
+| S&P 500 | Yahoo `^GSPC` | FRED `SP500` |
 | IWM / EFA / EEM | Yahoo ticker | — |
 | Gold spot | FRED `GOLDAMGBD228NLBM` | Yahoo `GC=F` |
 | WTI crude | FRED `DCOILWTICO` | Yahoo `CL=F` |
@@ -114,7 +132,15 @@ Or use any static server (`npx serve`, VS Code Live Server, etc.).
 | 10Y Treasury | FRED `DGS10` | — |
 | Fed Funds upper | FRED `DFEDTARU` | — |
 
-If a primary source fails (CORS, rate limit, network), the fallback runs automatically. If both fail, the card displays the error message and the rest of the grid still renders.
+Fallback runs automatically if the primary fails. If both fail, the asset's entry in `live.json` gets an `error` field and the Live tab renders an error card for that asset while the rest keep rendering cleanly.
+
+### Required repo settings
+
+The Action needs permission to push back to main. This is on by default for new public repos, but confirm under:
+
+**Settings → Actions → General → Workflow permissions → "Read and write permissions"**
+
+The workflow's `permissions: contents: write` block handles the token scope.
 
 ## Why not a framework?
 

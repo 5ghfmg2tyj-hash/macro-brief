@@ -64,28 +64,31 @@
     <div class="panel panel-head">
       <h1>Live market data</h1>
       <div class="subtitle">
-        Latest available levels pulled in your browser from public CORS-enabled endpoints
-        (FRED CSV, Yahoo Finance chart API, Stooq fallback, CoinGecko for BTC).
-        No API keys required. Last refresh: <span id="live-ts">—</span>
+        Latest available levels pre-fetched server-side by a GitHub Action
+        (FRED CSV, Yahoo Finance chart API, Stooq fallback, CoinGecko for BTC)
+        and committed to <code>data/live.json</code>. The Action runs every
+        30 minutes during US market hours. No API keys required.
+        Last refresh: <span id="live-ts">—</span>
       </div>
       <div style="margin-top:12px;">
-        <button class="btn" id="refresh-live">Refresh now</button>
+        <button class="btn" id="refresh-live">Reload</button>
         <span class="muted" style="margin-left:10px; font-size:12px;" id="live-status"></span>
       </div>
     </div>
 
     <div class="panel">
       <div class="live-grid" id="live-grid">
-        <div class="muted" style="grid-column: 1/-1;">Click "Refresh now" to load live data.</div>
+        <div class="muted" style="grid-column: 1/-1;">Loading…</div>
       </div>
     </div>
 
     <div class="panel">
       <div class="section-label">Notes</div>
       <ul class="notes">
-        <li>Some endpoints (Yahoo, Stooq) occasionally block CORS or rate-limit. If a cell shows an error, try again in a minute or use the FRED fallback where available.</li>
-        <li>FRED series update once per business day (~4pm ET). Intraday quotes come from Yahoo / CoinGecko.</li>
-        <li>OAS spreads (IG, HY) are in basis points. FRED reports them in percent, auto-scaled here.</li>
+        <li>Data is refreshed every 30 minutes during US market hours (Mon–Fri, 13:00–21:00 UTC) by a GitHub Action that runs <code>scripts/fetch_live.py</code> and commits the result to <code>docs/data/live.json</code>.</li>
+        <li>The <strong>Reload</strong> button re-reads <code>live.json</code> from the site — it does not trigger a fresh fetch. To force a fresh fetch, go to the repo's Actions tab and dispatch the <em>Refresh live market data</em> workflow manually.</li>
+        <li>FRED series update once per business day (~4pm ET); intraday quotes come from Yahoo / CoinGecko.</li>
+        <li>OAS spreads (IG, HY) are in basis points — FRED reports them in percent and the fetcher auto-scales.</li>
       </ul>
     </div>
   </section>

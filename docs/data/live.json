@@ -1,0 +1,6 @@
+{
+  "fetchedAt": null,
+  "schemaVersion": 1,
+  "notes": "Placeholder committed with the initial scaffold. The 'Refresh live market data' GitHub Action replaces this file on its first run. To force a fresh fetch before the next scheduled slot, open the Actions tab and run the workflow manually.",
+  "assets": {}
+}
