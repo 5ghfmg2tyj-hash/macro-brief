@@ -1,0 +1,27 @@
+{
+  "_note": "Weekly net fund flows (in $B) for the underlying vehicle that represents each asset class. Cash = ICI weekly money market fund total asset change (not an ETF). Commodities, IG, and Treasuries have no clean ETF flow proxy in this scope. Only the most recent week's MMF, GLD, BTC, and SPY-complex numbers are directly confirmed from published weekly reports — earlier-week numbers are derived from reported monthly/YTD/5-day aggregates and should be treated as directional.",
+  "weeks": ["Mar 23", "Mar 30", "Apr 13", "Apr 20"],
+  "flows": {
+    "usLarge": [4.0, 6.0, 5.0, 7.9],
+    "usSmid":  [-0.8, -1.0, 2.5, -2.0],
+    "intlDev": [0.3, 0.4, 0.5, 0.0],
+    "em":      [0.2, 0.3, 0.6, 0.8],
+    "gold":    [-4.0, -3.0, 1.3, 1.0],
+    "commod":  null,
+    "bitcoin": [-0.2, -0.1, 0.5, 1.1],
+    "ig":      null,
+    "hy":      [-0.2, 0.4, 0.7, 0.5],
+    "treas":   null,
+    "cash":    [35.0, 55.0, 13.25, -175.81]
+  },
+  "confirmationLevel": {
+    "usLarge": "Apr 18 week confirmed (SPY+IVV+VOO aggregate); earlier weeks directional.",
+    "usSmid":  "Apr 18 week confirmed (IWM weekly); earlier weeks directional.",
+    "intlDev": "Directional estimates from monthly totals.",
+    "em":      "Directional estimates from monthly totals.",
+    "gold":    "Apr 9 week +1.3B confirmed; others directional.",
+    "bitcoin": "Apr 18 week confirmed (spot BTC ETFs aggregate); earlier weeks directional.",
+    "hy":      "Directional estimates from HYG+JNK weekly + monthly aggregates.",
+    "cash":    "Apr 15 week (-175.81B) confirmed — tax-day-driven, not a risk-on deployment signal."
+  }
+}

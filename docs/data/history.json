@@ -1,0 +1,121 @@
+{
+  "_note": "Weekly allocation history and representative index values for the Macro Brief app. Each run of the scheduled brief appends (or overwrites within a ±5 day window) an entry to 'weeks' and pushes one value into every 'alloc' and 'vals' array. See /briefs for the full text of each week's brief.",
+  "scale": {
+    "-1": "Underweight (UW)",
+    "-0.5": "Slight Underweight",
+    "0": "Neutral",
+    "0.5": "Slight Overweight",
+    "1": "Overweight (OW)"
+  },
+  "weeks": ["Mar 23", "Mar 30", "Apr 13", "Apr 20"],
+  "weekDates": ["2026-03-23", "2026-03-30", "2026-04-13", "2026-04-20"],
+  "assets": [
+    {
+      "key": "usLarge", "label": "US Large Cap", "group": "equities",
+      "color": "#E69F00", "dash": "0", "shape": "circle",
+      "alloc": [0, -1, 0, 0],
+      "idx": "S&P 500", "unit": "pts",
+      "vals": [6600, 6369, 6900, 7126], "mo": 6369, "yr": 5280,
+      "flowIdx": "SPY + IVV + VOO (combined)",
+      "live": { "source": "yahoo", "symbol": "^GSPC", "fredSeries": "SP500" }
+    },
+    {
+      "key": "usSmid", "label": "US Small/Mid Cap", "group": "equities",
+      "color": "#56B4E9", "dash": "0", "shape": "square",
+      "alloc": [-1, -1, -1, 1],
+      "idx": "IWM (Russell 2000 ETF)", "unit": "usd",
+      "vals": [241, 225, 253, 276], "mo": 225, "yr": 205,
+      "flowIdx": "IWM net flows",
+      "live": { "source": "yahoo", "symbol": "IWM" }
+    },
+    {
+      "key": "intlDev", "label": "International Dev", "group": "international",
+      "color": "#009E73", "dash": "5,3", "shape": "triangle",
+      "alloc": [1, 1, 1, 1],
+      "idx": "EFA (MSCI EAFE ETF)", "unit": "usd",
+      "vals": [88, 84, 89, 95.5], "mo": 84, "yr": 80,
+      "flowIdx": "EFA net flows",
+      "live": { "source": "yahoo", "symbol": "EFA" }
+    },
+    {
+      "key": "em", "label": "Emerging Markets", "group": "international",
+      "color": "#F0E442", "dash": "5,3", "shape": "diamond",
+      "alloc": [0, 0, 0, 1],
+      "idx": "EEM (MSCI EM ETF)", "unit": "usd",
+      "vals": [55, 52, 58, 63.64], "mo": 52, "yr": 48.5,
+      "flowIdx": "EEM net flows",
+      "live": { "source": "yahoo", "symbol": "EEM" }
+    },
+    {
+      "key": "gold", "label": "Gold", "group": "alternatives",
+      "color": "#D55E00", "dash": "2,2", "shape": "star",
+      "alloc": [1, 1, 1, 1],
+      "idx": "Gold spot", "unit": "oz",
+      "vals": [4417, 4500, 4728, 4850], "mo": 4500, "yr": 3350,
+      "flowIdx": "GLD net flows",
+      "live": { "source": "fred", "fredSeries": "GOLDAMGBD228NLBM", "yahooFallback": "GC=F" }
+    },
+    {
+      "key": "commod", "label": "Commodities (Oil/Cu)", "group": "alternatives",
+      "color": "#CC79A7", "dash": "2,2", "shape": "x",
+      "alloc": [0, 0, 0, 0],
+      "idx": "WTI Crude", "unit": "bbl",
+      "vals": [99, 95, 104, 79.78], "mo": 95, "yr": 62,
+      "flowIdx": null,
+      "live": { "source": "fred", "fredSeries": "DCOILWTICO", "yahooFallback": "CL=F" }
+    },
+    {
+      "key": "bitcoin", "label": "Bitcoin / Crypto", "group": "alternatives",
+      "color": "#0072B2", "dash": "2,2", "shape": "plus",
+      "alloc": [-1, -1, 0, 0],
+      "idx": "BTC-USD", "unit": "usd",
+      "vals": [70600, 72000, 78000, 75746], "mo": 72000, "yr": 84946,
+      "flowIdx": "Spot BTC ETFs (IBIT/FBTC/etc.)",
+      "live": { "source": "yahoo", "symbol": "BTC-USD", "coingeckoFallback": "bitcoin" }
+    },
+    {
+      "key": "ig", "label": "IG Bonds", "group": "bonds",
+      "color": "#999999", "dash": "4,2,1,2", "shape": "circle",
+      "alloc": [0, 0, 0, 0.5],
+      "idx": "IG OAS (ICE BofA)", "unit": "bps", "invert": true,
+      "vals": [110, 115, 108, 105], "mo": 115, "yr": 130,
+      "flowIdx": null,
+      "live": { "source": "fred", "fredSeries": "BAMLC0A0CM", "unitScale": 100 }
+    },
+    {
+      "key": "hy", "label": "High Yield Bonds", "group": "bonds",
+      "color": "#E69F00", "dash": "4,2,1,2", "shape": "square",
+      "alloc": [-1, -1, -1, -1],
+      "idx": "HY OAS (ICE BofA)", "unit": "bps", "invert": true,
+      "vals": [320, 317, 294, 285], "mo": 317, "yr": 420,
+      "flowIdx": "HYG + JNK (combined)",
+      "live": { "source": "fred", "fredSeries": "BAMLH0A0HYM2", "unitScale": 100 }
+    },
+    {
+      "key": "treas", "label": "Intermediate Treasuries", "group": "bonds",
+      "color": "#56B4E9", "dash": "4,2,1,2", "shape": "triangle",
+      "alloc": [0, 0, 1, 1],
+      "idx": "10Y US Treasury yield", "unit": "pct", "invert": true,
+      "vals": [4.37, 4.35, 4.30, 4.26], "mo": 4.35, "yr": 4.41,
+      "flowIdx": null,
+      "live": { "source": "fred", "fredSeries": "DGS10" }
+    },
+    {
+      "key": "cash", "label": "Cash / Short Duration", "group": "bonds",
+      "color": "#009E73", "dash": "4,2,1,2", "shape": "diamond",
+      "alloc": [1, 1, 0.5, -1],
+      "idx": "Fed Funds target (upper)", "unit": "pct",
+      "vals": [3.75, 3.75, 3.75, 3.75], "mo": 3.75, "yr": 4.50,
+      "flowIdx": "ICI total MMF weekly change",
+      "live": { "source": "fred", "fredSeries": "DFEDTARU" }
+    }
+  ],
+  "groups": [
+    { "key": "all",           "label": "All" },
+    { "key": "equities",      "label": "US Equities" },
+    { "key": "international", "label": "International" },
+    { "key": "bonds",         "label": "Bonds / Cash" },
+    { "key": "alternatives",  "label": "Alternatives" }
+  ],
+  "notes": "Apr 19 / Apr 20 duplicate weekly points were collapsed into a single Apr 20 entry. Weekly index values for Mar 23 / Mar 30 / Apr 13 for IWM, EFA, EEM, and BTC are reasonable approximations; Apr 20 values match the Apr 17/20 published levels."
+}

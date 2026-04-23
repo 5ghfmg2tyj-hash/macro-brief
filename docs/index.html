@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Macro Brief — Allocation Tracker</title>
+<meta name="description" content="Weekly macro allocation calls with interactive Tilt/Flows chart and live market data."/>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <div>
+        <div class="brand-title">Macro Brief</div>
+        <div class="brand-sub">Weekly allocation tracker</div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="chart"  role="tab">Chart</button>
+      <button class="tab"        data-tab="live"   role="tab">Live data</button>
+      <button class="tab"        data-tab="brief"  role="tab">This week's brief</button>
+      <button class="tab"        data-tab="about"  role="tab">About</button>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ========= CHART TAB ========= -->
+  <section class="tab-panel active" id="tab-chart" role="tabpanel">
+    <div class="panel panel-head">
+      <h1 id="chart-title">Allocation Recommendations — Weekly History</h1>
+      <div class="subtitle" id="subtitle">Loading…</div>
+    </div>
+
+    <div class="panel">
+      <div class="section-label">View</div>
+      <div class="chips" id="viewChips"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-label">Filter by group</div>
+      <div class="chips" id="groupChips"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-label">Toggle individual asset class</div>
+      <div class="chips" id="assetChips"></div>
+    </div>
+
+    <div class="panel chart-wrap">
+      <svg id="chart" viewBox="0 0 960 440" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="tooltip" id="tooltip"></div>
+      <div class="legend-note">Tilt view: tooltip shows representative index value + WoW / 1M / 1Y deltas. Flows view: tooltip shows the weekly net fund flow for each visible asset's underlying vehicle plus the brief's tilt that week.</div>
+      <div class="footer" id="chart-footer"></div>
+    </div>
+  </section>
+
+  <!-- ========= LIVE TAB ========= -->
+  <section class="tab-panel" id="tab-live" role="tabpanel">
+    <div class="panel panel-head">
+      <h1>Live market data</h1>
+      <div class="subtitle">
+        Latest available levels pulled in your browser from public CORS-enabled endpoints
+        (FRED CSV, Yahoo Finance chart API, Stooq fallback, CoinGecko for BTC).
+        No API keys required. Last refresh: <span id="live-ts">—</span>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn" id="refresh-live">Refresh now</button>
+        <span class="muted" style="margin-left:10px; font-size:12px;" id="live-status"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="live-grid" id="live-grid">
+        <div class="muted" style="grid-column: 1/-1;">Click "Refresh now" to load live data.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-label">Notes</div>
+      <ul class="notes">
+        <li>Some endpoints (Yahoo, Stooq) occasionally block CORS or rate-limit. If a cell shows an error, try again in a minute or use the FRED fallback where available.</li>
+        <li>FRED series update once per business day (~4pm ET). Intraday quotes come from Yahoo / CoinGecko.</li>
+        <li>OAS spreads (IG, HY) are in basis points. FRED reports them in percent, auto-scaled here.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= BRIEF TAB ========= -->
+  <section class="tab-panel" id="tab-brief" role="tabpanel">
+    <div class="panel panel-head">
+      <h1 id="brief-title">This week's brief</h1>
+      <div class="subtitle" id="brief-sub">Loading latest brief…</div>
+    </div>
+    <div class="panel">
+      <div id="brief-body" class="brief-body">
+        <div class="muted">Loading…</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="section-label">Prior briefs</div>
+      <ul id="brief-history" class="brief-history"></ul>
+    </div>
+  </section>
+
+  <!-- ========= ABOUT TAB ========= -->
+  <section class="tab-panel" id="tab-about" role="tabpanel">
+    <div class="panel panel-head">
+      <h1>About this app</h1>
+      <div class="subtitle">A static site that renders the weekly macro brief's allocation history, live market data, and the full text of each week's note.</div>
+    </div>
+    <div class="panel">
+      <h3>How it updates</h3>
+      <p>Each Monday, a scheduled task generates a new weekly brief and appends (or overwrites, within a ±5 day window) a weekly point to <code>data/history.json</code> and <code>data/flows.json</code>, plus a markdown file in <code>briefs/</code>. Committing and pushing to <code>main</code> is the only deploy step — GitHub Pages serves the <code>/docs</code> folder automatically.</p>
+      <h3>Data sources</h3>
+      <p>Bundled JSON for historical tilts and flows. Live quotes are fetched at view time from:</p>
+      <ul class="notes">
+        <li><a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a> CSV endpoints — Treasury yields, OAS spreads, WTI, gold fix, Fed funds. No key needed, CORS-friendly.</li>
+        <li><a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a> chart API — equity indices and ETFs.</li>
+        <li><a href="https://stooq.com/" target="_blank" rel="noopener">Stooq</a> — fallback for daily closes.</li>
+        <li><a href="https://www.coingecko.com/" target="_blank" rel="noopener">CoinGecko</a> — BTC spot.</li>
+      </ul>
+      <h3>Flow data</h3>
+      <p>ETF and MMF flow figures come from published weekly reports (ICI, ETF.com, VettaFi). They are committed to <code>flows.json</code> each week — not fetched live, because the underlying sources don't expose a clean CORS endpoint.</p>
+      <h3>Source</h3>
+      <p>Code lives on GitHub. PRs welcome.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="page-footer">
+  <span class="muted">Built as a static site · deployed via GitHub Pages · no backend, no tracking</span>
+</footer>
+
+<script src="live.js"></script>
+<script src="chart.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

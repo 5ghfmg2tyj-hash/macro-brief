@@ -1,0 +1,10 @@
+{
+  "_note": "Sorted newest-first. Each entry maps to briefs/<slug>.md. The scheduled-task append/overwrite rule applies here too: if today's run falls within ±5 days of the top entry's date, overwrite in place.",
+  "briefs": [
+    {
+      "slug": "2026-04-20",
+      "title": "Weekly Macro Brief — April 20, 2026",
+      "date": "2026-04-20"
+    }
+  ]
+}
