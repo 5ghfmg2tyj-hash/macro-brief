@@ -2,9 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Macro Brief — Allocation Tracker</title>
 <meta name="description" content="Weekly macro allocation calls with interactive Tilt/Flows chart and live market data."/>
+
+<!-- ========= PWA / theming ========= -->
+<link rel="manifest" href="manifest.webmanifest"/>
+<meta name="theme-color" content="#0b1220"/>
+<meta name="color-scheme" content="dark"/>
+
+<!-- iOS PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Macro Brief"/>
+<link rel="apple-touch-icon" href="icons/icon-180.png"/>
+<link rel="icon" type="image/png" href="icons/favicon.png"/>
+
 <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
@@ -24,6 +38,10 @@
       <button class="tab"        data-tab="brief"  role="tab">This week's brief</button>
       <button class="tab"        data-tab="about"  role="tab">About</button>
     </nav>
+    <button class="btn btn-install" id="install-btn" hidden aria-label="Install app">
+      <span class="install-icon" aria-hidden="true">⬇︎</span>
+      <span class="install-label">Install</span>
+    </button>
   </div>
 </header>
 
@@ -64,28 +82,32 @@
     <div class="panel panel-head">
       <h1>Live market data</h1>
       <div class="subtitle">
-        Latest available levels pulled in your browser from public CORS-enabled endpoints
-        (FRED CSV, Yahoo Finance chart API, Stooq fallback, CoinGecko for BTC).
-        No API keys required. Last refresh: <span id="live-ts">—</span>
+        Latest available levels read from <code>data/live.json</code>, which is
+        rewritten by the <code>fetch_live.py</code> fetcher running on a local
+        cron (launchd) every 30 minutes during US market hours. No API keys,
+        no backend service to host.
+        Last refresh: <span id="live-ts">—</span>
       </div>
       <div style="margin-top:12px;">
-        <button class="btn" id="refresh-live">Refresh now</button>
+        <button class="btn" id="refresh-live">Reload</button>
         <span class="muted" style="margin-left:10px; font-size:12px;" id="live-status"></span>
       </div>
     </div>
 
     <div class="panel">
       <div class="live-grid" id="live-grid">
-        <div class="muted" style="grid-column: 1/-1;">Click "Refresh now" to load live data.</div>
+        <div class="muted" style="grid-column: 1/-1;">Loading…</div>
       </div>
     </div>
 
     <div class="panel">
       <div class="section-label">Notes</div>
       <ul class="notes">
-        <li>Some endpoints (Yahoo, Stooq) occasionally block CORS or rate-limit. If a cell shows an error, try again in a minute or use the FRED fallback where available.</li>
-        <li>FRED series update once per business day (~4pm ET). Intraday quotes come from Yahoo / CoinGecko.</li>
-        <li>OAS spreads (IG, HY) are in basis points. FRED reports them in percent, auto-scaled here.</li>
+        <li>Data is refreshed by <code>scripts/fetch_live.py</code>, scheduled via a launchd LaunchAgent (see <code>scripts/com.macro-brief.fetch.plist</code>). It fetches server-side (Python <code>urllib</code>), so CORS never enters the picture.</li>
+        <li>The fetcher auto-commits & pushes <code>docs/data/live.json</code>, so the deployed GitHub Pages site reflects the freshest data within ~60 seconds of each run.</li>
+        <li>The <strong>Reload</strong> button re-reads <code>live.json</code> from the server — it does not trigger a fresh fetch. To force a fetch, run <code>./scripts/fetch_and_push.sh</code> from the repo root.</li>
+        <li>FRED series update once per business day (~4pm ET); intraday quotes come from Yahoo / CoinGecko.</li>
+        <li>OAS spreads (IG, HY) are in basis points — FRED reports them in percent and the fetcher auto-scales.</li>
       </ul>
     </div>
   </section>
@@ -111,21 +133,34 @@
   <section class="tab-panel" id="tab-about" role="tabpanel">
     <div class="panel panel-head">
       <h1>About this app</h1>
-      <div class="subtitle">A static site that renders the weekly macro brief's allocation history, live market data, and the full text of each week's note.</div>
+      <div class="subtitle">A static PWA that renders the weekly macro brief's allocation history, live market data, and the full text of each week's note. Installable from the browser on iOS, Android, macOS, Windows, and Linux.</div>
     </div>
+
+    <div class="panel">
+      <h3>Install as an app</h3>
+      <p id="install-about">Click the <strong>Install</strong> button in the header to add Macro Brief to your home screen / Dock / Start Menu.</p>
+      <p class="muted" id="install-ios-hint" hidden>
+        On iPhone / iPad: tap the <strong>Share</strong> icon in Safari, then
+        <strong>Add to Home Screen</strong>. The app opens full-screen with its
+        own icon, same as any native app.
+      </p>
+    </div>
+
     <div class="panel">
       <h3>How it updates</h3>
       <p>Each Monday, a scheduled task generates a new weekly brief and appends (or overwrites, within a ±5 day window) a weekly point to <code>data/history.json</code> and <code>data/flows.json</code>, plus a markdown file in <code>briefs/</code>. Committing and pushing to <code>main</code> is the only deploy step — GitHub Pages serves the <code>/docs</code> folder automatically.</p>
       <h3>Data sources</h3>
-      <p>Bundled JSON for historical tilts and flows. Live quotes are fetched at view time from:</p>
+      <p>Bundled JSON for historical tilts and flows. Live quotes are fetched by the local cron from:</p>
       <ul class="notes">
-        <li><a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a> CSV endpoints — Treasury yields, OAS spreads, WTI, gold fix, Fed funds. No key needed, CORS-friendly.</li>
+        <li><a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a> CSV endpoints — Treasury yields, OAS spreads, WTI, gold fix, Fed funds.</li>
         <li><a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a> chart API — equity indices and ETFs.</li>
         <li><a href="https://stooq.com/" target="_blank" rel="noopener">Stooq</a> — fallback for daily closes.</li>
         <li><a href="https://www.coingecko.com/" target="_blank" rel="noopener">CoinGecko</a> — BTC spot.</li>
       </ul>
       <h3>Flow data</h3>
       <p>ETF and MMF flow figures come from published weekly reports (ICI, ETF.com, VettaFi). They are committed to <code>flows.json</code> each week — not fetched live, because the underlying sources don't expose a clean CORS endpoint.</p>
+      <h3>Offline</h3>
+      <p>A service worker caches the app shell so Macro Brief opens instantly and works offline. Live data and briefs are re-fetched when online; the last cached copy is shown when offline.</p>
       <h3>Source</h3>
       <p>Code lives on GitHub. PRs welcome.</p>
     </div>
@@ -134,12 +169,31 @@
 </main>
 
 <footer class="page-footer">
-  <span class="muted">Built as a static site · deployed via GitHub Pages · no backend, no tracking</span>
+  <span class="muted">Built as a static PWA · deployed via GitHub Pages · no backend, no tracking</span>
 </footer>
+
+<!-- ========= iOS install hint overlay ========= -->
+<div class="ios-install-sheet" id="ios-sheet" hidden>
+  <div class="ios-install-card">
+    <button class="ios-close" id="ios-close" aria-label="Close">×</button>
+    <div class="ios-title">Install on iPhone / iPad</div>
+    <ol class="ios-steps">
+      <li>Tap the <strong>Share</strong> icon
+          <span class="ios-icon" aria-hidden="true">⬆︎</span>
+          at the bottom of Safari.</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+      <li>Tap <strong>Add</strong>. Macro Brief launches full-screen with its own icon.</li>
+    </ol>
+    <p class="muted ios-note">
+      Works in Safari only — iOS blocks this feature in Chrome/Firefox/Edge on iPhone.
+    </p>
+  </div>
+</div>
 
 <script src="live.js"></script>
 <script src="chart.js"></script>
 <script src="app.js"></script>
+<script src="pwa.js"></script>
 
 </body>
 </html>

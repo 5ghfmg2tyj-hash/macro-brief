@@ -1,0 +1,48 @@
+{
+  "name": "Macro Brief",
+  "short_name": "Macro Brief",
+  "description": "Weekly macro allocation brief — tilt chart, live market data, and the full text of each week's note.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0b1220",
+  "categories": ["finance", "news", "productivity"],
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "This week's brief",
+      "short_name": "Brief",
+      "url": "./#brief",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Live market data",
+      "short_name": "Live",
+      "url": "./#live",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

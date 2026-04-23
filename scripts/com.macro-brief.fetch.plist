@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.macro-brief.fetch</string>
+
+  <!--
+    NOTE: Update the two absolute paths below if the repo moves.
+    The tokens __REPO_ROOT__ get replaced during `make install-cron`
+    (see README: "Local cron setup").
+  -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__REPO_ROOT__/scripts/fetch_and_push.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__REPO_ROOT__</string>
+
+  <!--
+    Every 30 min on weekdays (Mon=1 .. Fri=5).
+    After-hours runs are cheap: the fetcher detects "no meaningful change"
+    and exits without committing, so there's nothing to clean up.
+  -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Weekday</key><integer>1</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>1</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Weekday</key><integer>2</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>2</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Weekday</key><integer>3</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>3</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Weekday</key><integer>4</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>4</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Weekday</key><integer>5</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>5</integer><key>Minute</key><integer>30</integer></dict>
+  </array>
+
+  <!-- Don't fire once on load — only on schedule. -->
+  <key>RunAtLoad</key>
+  <false/>
+
+  <!-- Throttle launchd retries if the job fails fast. -->
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
+
+  <!--
+    launchd will capture stdout/stderr here as a safety net;
+    fetch_and_push.sh also writes its own rotating log at
+    ~/Library/Logs/macro-brief/fetch.log.
+  -->
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/macro-brief/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/macro-brief/launchd.err.log</string>
+
+  <!-- Keep the process alive only long enough to finish one run. -->
+  <key>KeepAlive</key>
+  <false/>
+</dict>
+</plist>

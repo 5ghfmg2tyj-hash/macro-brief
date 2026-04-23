@@ -319,9 +319,100 @@ svg#chart { display: block; width: 100%; height: auto; }
   text-align: center;
 }
 
+/* ============ INSTALL BUTTON (PWA) ============ */
+.btn-install {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  color: #0b1220;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+}
+.btn-install:hover {
+  filter: brightness(1.06);
+}
+.btn-install .install-icon {
+  font-size: 14px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+/* ============ iOS INSTALL SHEET ============ */
+.ios-install-sheet {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 16, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  padding: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+}
+.ios-install-sheet[hidden] { display: none; }
+.ios-install-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 22px 18px 22px;
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+.ios-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.ios-steps {
+  padding-left: 20px;
+  margin: 0 0 10px 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+.ios-steps li { margin: 6px 0; }
+.ios-icon {
+  display: inline-block;
+  padding: 0 4px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.ios-note { font-size: 11.5px; margin-top: 6px; }
+.ios-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.ios-close:hover { color: var(--text); }
+
+/* ============ STANDALONE (running as installed PWA) ============ */
+@media (display-mode: standalone) {
+  /* Extra top padding so the header doesn't crowd the status bar on iOS. */
+  .topbar-inner { padding-top: calc(12px + env(safe-area-inset-top, 0)); }
+  /* Safe bottom inset. */
+  .page-footer  { padding-bottom: env(safe-area-inset-bottom, 0); }
+}
+
 @media (max-width: 640px) {
   .topbar-inner { flex-direction: column; align-items: flex-start; }
   .tabs { width: 100%; overflow-x: auto; }
   .container { padding: 16px; }
   .panel { padding: 16px; }
+  .btn-install { align-self: stretch; justify-content: center; }
 }
