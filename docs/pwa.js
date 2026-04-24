@@ -85,15 +85,15 @@
           deferredPrompt = null;
           if (choice.outcome === "accepted") installBtn.hidden = true;
         } catch (err) {
-          // Browser throttled or cancelled the prompt — fall through to sheet.
           console.warn("Install prompt failed:", err);
           deferredPrompt = null;
-          if (iosSheet) iosSheet.hidden = false;
+          // Only show the manual sheet on platforms that have no native dialog.
+          if ((isIOS || isMacSafariLegacy) && iosSheet) iosSheet.hidden = false;
         }
         return;
       }
-      // No deferred prompt: show manual-install sheet for any platform.
-      if (iosSheet) iosSheet.hidden = false;
+      // No deferred prompt — show manual sheet only for platforms that need it.
+      if ((isIOS || isMacSafariLegacy) && iosSheet) iosSheet.hidden = false;
     });
   }
 
