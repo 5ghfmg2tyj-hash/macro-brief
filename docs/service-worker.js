@@ -7,7 +7,7 @@
 // Bump CACHE_VERSION whenever app-shell assets change so old clients re-fetch.
 // ==============================================================================
 
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const SHELL_CACHE   = `macro-brief-shell-${CACHE_VERSION}`;
 const DATA_CACHE    = `macro-brief-data-${CACHE_VERSION}`;
 
@@ -19,6 +19,7 @@ const SHELL_ASSETS = [
   "./app.js",
   "./chart.js",
   "./live.js",
+  "./pwa.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
