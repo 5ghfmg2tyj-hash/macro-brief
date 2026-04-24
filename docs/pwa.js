@@ -80,7 +80,7 @@
     installBtn.addEventListener("click", async () => {
       if (deferredPrompt) {
         try {
-          deferredPrompt.prompt();
+          await deferredPrompt.prompt();
           const choice = await deferredPrompt.userChoice;
           deferredPrompt = null;
           if (choice.outcome === "accepted") installBtn.hidden = true;
