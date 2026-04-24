@@ -75,7 +75,7 @@
   // Hide install button when the app is already running as a PWA.
   if (isStandalone && installBtn) installBtn.hidden = true;
 
-  // Button click: either fire the browser prompt or open the iOS sheet.
+  // Button click: either fire the browser prompt or open the appropriate sheet.
   if (installBtn) {
     installBtn.addEventListener("click", async () => {
       if (deferredPrompt) {
@@ -85,16 +85,26 @@
           deferredPrompt = null;
           if (choice.outcome === "accepted") installBtn.hidden = true;
         } catch (err) {
+          // Don't null deferredPrompt — keep it for retry. Show fallback sheet.
           console.warn("Install prompt failed:", err);
-          deferredPrompt = null;
-          // Only show the manual sheet on platforms that have no native dialog.
-          if ((isIOS || isMacSafariLegacy) && iosSheet) iosSheet.hidden = false;
+          showInstallSheet();
         }
         return;
       }
-      // No deferred prompt — show manual sheet only for platforms that need it.
-      if ((isIOS || isMacSafariLegacy) && iosSheet) iosSheet.hidden = false;
+      showInstallSheet();
     });
+  }
+
+  function showInstallSheet() {
+    if (!iosSheet) return;
+    const iosSteps     = document.getElementById("install-ios-steps");
+    const macSteps     = document.getElementById("install-mac-steps");
+    const browserSteps = document.getElementById("install-browser-steps");
+    [iosSteps, macSteps, browserSteps].forEach((el) => { if (el) el.hidden = true; });
+    if (isIOS && iosSteps)                  iosSteps.hidden = false;
+    else if (isMacSafariLegacy && macSteps) macSteps.hidden = false;
+    else if (browserSteps)                  browserSteps.hidden = false;
+    iosSheet.hidden = false;
   }
 
   if (iosCloseBtn && iosSheet) {

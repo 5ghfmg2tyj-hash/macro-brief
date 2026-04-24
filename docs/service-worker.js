@@ -7,7 +7,7 @@
 // Bump CACHE_VERSION whenever app-shell assets change so old clients re-fetch.
 // ==============================================================================
 
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const SHELL_CACHE   = `macro-brief-shell-${CACHE_VERSION}`;
 const DATA_CACHE    = `macro-brief-data-${CACHE_VERSION}`;
 
