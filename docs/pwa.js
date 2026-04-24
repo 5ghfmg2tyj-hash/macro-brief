@@ -7,8 +7,16 @@
   // ---------- platform detection ----------
   const ua = navigator.userAgent || "";
   const isIOS = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+
+  // macOS Safari: excludes Chrome, Edge, and Firefox even when they include
+  // "Safari" in their UA strings.
   const isMacSafari = /Macintosh/.test(ua) && /Safari/.test(ua) &&
-                      !/Chrome|Chromium|CriOS|FxiOS|EdgA/.test(ua);
+                      !/Chrome|Chromium|CriOS|FxiOS|EdgA|Firefox/.test(ua);
+
+  // Safari 26+ supports beforeinstallprompt natively; 17–25 needs "Add to Dock".
+  const safariVersion = parseInt((ua.match(/Version\/(\d+)/) || [])[1]) || 0;
+  const isMacSafariLegacy = isMacSafari && safariVersion >= 17 && safariVersion < 26;
+
   const isStandalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
@@ -50,18 +58,19 @@
     if (!isStandalone && installBtn) installBtn.hidden = false;
   });
 
-  // iOS / macOS Safari: no beforeinstallprompt. Show button + route to sheet.
-  if ((isIOS || isMacSafari) && !isStandalone && installBtn) {
+  // iOS + macOS Safari 17–25: no beforeinstallprompt; show button immediately.
+  if ((isIOS || isMacSafariLegacy) && !isStandalone && installBtn) {
     installBtn.hidden = false;
     if (aboutHint) aboutHint.hidden = false;
     // Pre-configure the sheet for the right platform.
     const iosSteps = document.getElementById("install-ios-steps");
     const macSteps = document.getElementById("install-mac-steps");
-    if (isMacSafari && iosSteps && macSteps) {
+    if (isMacSafariLegacy && iosSteps && macSteps) {
       iosSteps.hidden = true;
       macSteps.hidden = false;
     }
   }
+  // Safari 26+ and Firefox 128+ fire beforeinstallprompt; handled above.
 
   // Hide install button when the app is already running as a PWA.
   if (isStandalone && installBtn) installBtn.hidden = true;
