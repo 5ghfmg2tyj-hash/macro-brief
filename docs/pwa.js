@@ -7,6 +7,8 @@
   // ---------- platform detection ----------
   const ua = navigator.userAgent || "";
   const isIOS = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+  const isMacSafari = /Macintosh/.test(ua) && /Safari/.test(ua) &&
+                      !/Chrome|Chromium|CriOS|FxiOS|EdgA/.test(ua);
   const isStandalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
@@ -48,10 +50,17 @@
     if (!isStandalone && installBtn) installBtn.hidden = false;
   });
 
-  // iOS: no beforeinstallprompt. Show the button + route to sheet.
-  if (isIOS && !isStandalone && installBtn) {
+  // iOS / macOS Safari: no beforeinstallprompt. Show button + route to sheet.
+  if ((isIOS || isMacSafari) && !isStandalone && installBtn) {
     installBtn.hidden = false;
     if (aboutHint) aboutHint.hidden = false;
+    // Pre-configure the sheet for the right platform.
+    const iosSteps = document.getElementById("install-ios-steps");
+    const macSteps = document.getElementById("install-mac-steps");
+    if (isMacSafari && iosSteps && macSteps) {
+      iosSteps.hidden = true;
+      macSteps.hidden = false;
+    }
   }
 
   // Hide install button when the app is already running as a PWA.
@@ -61,15 +70,21 @@
   if (installBtn) {
     installBtn.addEventListener("click", async () => {
       if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        if (choice.outcome === "accepted") installBtn.hidden = true;
+        try {
+          deferredPrompt.prompt();
+          const choice = await deferredPrompt.userChoice;
+          deferredPrompt = null;
+          if (choice.outcome === "accepted") installBtn.hidden = true;
+        } catch (err) {
+          // Browser throttled or cancelled the prompt — fall through to sheet.
+          console.warn("Install prompt failed:", err);
+          deferredPrompt = null;
+          if (iosSheet) iosSheet.hidden = false;
+        }
         return;
       }
-      if (isIOS && iosSheet) {
-        iosSheet.hidden = false;
-      }
+      // No deferred prompt: show manual-install sheet for any platform.
+      if (iosSheet) iosSheet.hidden = false;
     });
   }
 

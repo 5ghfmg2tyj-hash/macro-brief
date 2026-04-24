@@ -172,21 +172,38 @@
   <span class="muted">Built as a static PWA · deployed via GitHub Pages · no backend, no tracking</span>
 </footer>
 
-<!-- ========= iOS install hint overlay ========= -->
+<!-- ========= Install hint overlay (iOS + macOS Safari) ========= -->
 <div class="ios-install-sheet" id="ios-sheet" hidden>
   <div class="ios-install-card">
     <button class="ios-close" id="ios-close" aria-label="Close">×</button>
-    <div class="ios-title">Install on iPhone / iPad</div>
-    <ol class="ios-steps">
-      <li>Tap the <strong>Share</strong> icon
-          <span class="ios-icon" aria-hidden="true">⬆︎</span>
-          at the bottom of Safari.</li>
-      <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-      <li>Tap <strong>Add</strong>. Macro Brief launches full-screen with its own icon.</li>
-    </ol>
-    <p class="muted ios-note">
-      Works in Safari only — iOS blocks this feature in Chrome/Firefox/Edge on iPhone.
-    </p>
+
+    <!-- iOS steps (shown by default; hidden on macOS) -->
+    <div id="install-ios-steps">
+      <div class="ios-title">Install on iPhone / iPad</div>
+      <ol class="ios-steps">
+        <li>Tap the <strong>Share</strong> icon
+            <span class="ios-icon" aria-hidden="true">⬆︎</span>
+            at the bottom of Safari.</li>
+        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+        <li>Tap <strong>Add</strong>. Macro Brief launches full-screen with its own icon.</li>
+      </ol>
+      <p class="muted ios-note">
+        Works in Safari only — iOS blocks this feature in Chrome/Firefox/Edge on iPhone.
+      </p>
+    </div>
+
+    <!-- macOS steps (hidden by default; shown on macOS Safari) -->
+    <div id="install-mac-steps" hidden>
+      <div class="ios-title">Install on Mac</div>
+      <ol class="ios-steps">
+        <li>In Safari, open the <strong>File</strong> menu.</li>
+        <li>Click <strong>Add to Dock…</strong></li>
+        <li>Optionally rename, then click <strong>Add</strong>. Macro Brief opens in its own window.</li>
+      </ol>
+      <p class="muted ios-note">
+        Requires macOS Sonoma (14) or later with Safari 17+.
+      </p>
+    </div>
   </div>
 </div>
 
