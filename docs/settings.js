@@ -12,7 +12,8 @@
     openai: [
       { value: "gpt-4o",      label: "GPT-4o (recommended)" },
       { value: "gpt-4o-mini", label: "GPT-4o mini (fast)" },
-      { value: "gpt-4",       label: "GPT-4 (legacy)" },
+      { value: "gpt-4.1",     label: "GPT-4.1" },
+      { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
     ],
   };
 
@@ -51,6 +52,7 @@
       .map(m => `<option value="${m.value}">${m.label}</option>`).join("");
     const saved = provider === "anthropic" ? current.anthropic_model : current.openai_model;
     if (saved && MODELS[provider].some(m => m.value === saved)) modelSelect.value = saved;
+    else modelSelect.selectedIndex = 0;
   }
 
   function renderKeyStatus(s) {
