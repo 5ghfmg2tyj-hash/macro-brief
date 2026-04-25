@@ -38,17 +38,7 @@ const VALID_SCORES = new Set([-1, -0.5, 0, 0.5, 1]);
 
 const SYSTEM_PROMPT = `You are a macro investment analyst. Given live market data and recent allocation history, produce a comprehensive weekly macro brief and updated allocation recommendations.
 
-The brief markdown should include:
-1. Money Flow Snapshot — MANDATORY: produce a markdown table showing net fund flows into/out of each asset class. EXACTLY these 7 columns:
-   | Asset Class | Vehicle | Daily Flow | WoW | MoM | 6M | YoY |
-   - All values in $B (billions). Positive = inflows, negative = outflows.
-   - Format: "+$1.5B", "−$2.3B", or "—" if data is unavailable.
-   - "Daily Flow" = today's estimated flow; WoW = past ~7 days; MoM = past ~30 days; 6M = past ~180 days; YoY = past ~365 days.
-   - Include ALL 11 asset classes. For Commodities and Cash, show "—" for any columns without data.
-   - Cash row: vehicle is SGOV+BIL (T-bill ETF proxy — directional signal, not the full MMF universe). Show flow data normally.
-   - Commodities row: all "—" (no ETF proxy).
-   - Use EXACTLY the vehicle names provided in the user prompt. Do not rename or add alternatives.
-   - This section is about WHERE MONEY IS FLOWING, not price levels.
+The app itself renders the Money Flow Snapshot table from structured data, so your markdown brief should begin at section 2 and include:
 2. Macro Cycle Assessment — 2–3 paragraphs on the macro regime
 3. Key Signals This Week — bulleted highlights of the most important moves
 4. Allocation Recommendations — one paragraph per asset class with rationale
@@ -80,6 +70,30 @@ function fmtB(v) {
   return `${b >= 0 ? "+" : "−"}$${Math.abs(b).toFixed(2)}B`;
 }
 
+const FLOW_ROWS = [
+  { key: "usLarge",  label: "US Large Cap",            vehicle: "SPY+IVV+VOO" },
+  { key: "usSmid",   label: "US Small/Mid Cap",        vehicle: "IWM" },
+  { key: "intlDev",  label: "International Dev",       vehicle: "EFA" },
+  { key: "em",       label: "Emerging Markets",        vehicle: "EEM" },
+  { key: "gold",     label: "Gold",                    vehicle: "GLD" },
+  { key: "commod",   label: "Commodities (Oil/Cu)",    vehicle: "—" },
+  { key: "bitcoin",  label: "Bitcoin / Crypto",        vehicle: "IBIT+FBTC" },
+  { key: "ig",       label: "IG Bonds",                vehicle: "LQD" },
+  { key: "hy",       label: "High Yield Bonds",        vehicle: "HYG+JNK" },
+  { key: "treas",    label: "Intermediate Treasuries", vehicle: "IEF+TLT" },
+  { key: "cash",     label: "Cash / Short Duration",   vehicle: "SGOV+BIL" },
+];
+
+function sumDefined(values) {
+  let total = 0, hasData = false;
+  for (const v of values) {
+    if (v == null) continue;
+    total += v;
+    hasData = true;
+  }
+  return hasData ? total : null;
+}
+
 function buildFlowNote(df) {
   if (!df) {
     return "NOTE: Fund flow data was unavailable for this run. Show — only where data is unavailable.";
@@ -98,6 +112,62 @@ function buildFlowNote(df) {
   }
 
   return "";
+}
+
+function renderMoneyFlowSnapshot(df) {
+  const note = buildFlowNote(df);
+
+  const lines = [
+    "## Money Flow Snapshot",
+    "",
+  ];
+
+  if (note) {
+    lines.push(note, "");
+  }
+
+  lines.push(
+    "| Asset Class | Vehicle | Daily Flow | WoW | MoM | 6M | YoY |",
+    "|---|---|---|---|---|---|---|"
+  );
+
+  for (const row of FLOW_ROWS) {
+    const f = df?.[row.key];
+    lines.push(`| ${row.label} | ${row.vehicle} | ${fmtB(f?.daily ?? null)} | ${fmtB(f?.wow ?? null)} | ${fmtB(f?.mom ?? null)} | ${fmtB(f?.mo6 ?? null)} | ${fmtB(f?.yoy ?? null)} |`);
+  }
+
+  const total = {
+    daily: sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.daily ?? null)),
+    wow:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.wow ?? null)),
+    mom:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mom ?? null)),
+    mo6:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mo6 ?? null)),
+    yoy:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.yoy ?? null)),
+  };
+
+  lines.push(`| **Total** | — | **${fmtB(total.daily)}** | **${fmtB(total.wow)}** | **${fmtB(total.mom)}** | **${fmtB(total.mo6)}** | **${fmtB(total.yoy)}** |`);
+
+  return lines.join("\n");
+}
+
+function stripLeadingSnapshotSection(markdown) {
+  if (!markdown) return "";
+  const patterns = [
+    /^##\s+Money Flow Snapshot[\s\S]*?(?=^##\s|\Z)/m,
+    /^##\s+1\.\s+Market Snapshot[\s\S]*?(?=^##\s|\Z)/m,
+    /^##\s+Market Snapshot[\s\S]*?(?=^##\s|\Z)/m,
+  ];
+
+  let out = markdown.trim();
+  for (const pattern of patterns) {
+    out = out.replace(pattern, "").trim();
+  }
+  return out;
+}
+
+function mergeBriefWithSnapshot(markdown, df) {
+  const snapshot = renderMoneyFlowSnapshot(df);
+  const remainder = stripLeadingSnapshotSection(markdown);
+  return remainder ? `${snapshot}\n\n${remainder}` : snapshot;
 }
 
 function buildUserPrompt(liveJson, historyJson) {
@@ -135,6 +205,14 @@ function buildUserPrompt(liveJson, historyJson) {
     return `  ${a.label} | vehicle=${veh} | daily=${fmtB(f.daily)} | wow=${fmtB(f.wow)} | mom=${fmtB(f.mom)} | mo6=${fmtB(f.mo6)} | yoy=${fmtB(f.yoy)}`;
   }).join("\n");
 
+  const totalRow = {
+    daily: sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.daily ?? null)),
+    wow:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.wow ?? null)),
+    mom:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mom ?? null)),
+    mo6:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mo6 ?? null)),
+    yoy:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.yoy ?? null)),
+  };
+
   const nWeeks = (historyJson.weeks || []).length;
   const start  = Math.max(0, nWeeks - 4);
   const recentWeeks = (historyJson.weeks     || []).slice(start);
@@ -155,6 +233,7 @@ FUND FLOW DATA — use this for the Money Flow Snapshot table (fetched ${liveJso
 ${flowNote}
 CRITICAL: Use the EXACT vehicle names from this data. Do NOT substitute, rename, or add alternatives (e.g. use "IWM" not "IWM/IJR", "GLD" not "GLD/IAU").
 ${flowRows}
+  Total | vehicle=— | daily=${fmtB(totalRow.daily)} | wow=${fmtB(totalRow.wow)} | mom=${fmtB(totalRow.mom)} | mo6=${fmtB(totalRow.mo6)} | yoy=${fmtB(totalRow.yoy)}
 
 MARKET PRICE CONTEXT — use for Macro Cycle Assessment / Key Signals / Allocation Recommendations:
 ${liveRows}
@@ -163,8 +242,8 @@ RECENT ALLOCATION HISTORY (last ${recentWeeks.length} week${recentWeeks.length !
 ${allocRows}
 
 Generate the full weekly macro brief and return the updated allocation scores.
-IMPORTANT: Section 1 heading must be "## Money Flow Snapshot" — not "Market Snapshot" or any other title.
-IMPORTANT: Section 1 table must have EXACTLY 7 columns (Asset Class | Vehicle | Daily Flow | WoW | MoM | 6M | YoY) showing fund flows in $B, not prices.`;
+IMPORTANT: Do not include a Money Flow Snapshot or Market Snapshot section in your markdown. The app will render the structured flow table itself.
+IMPORTANT: Start your markdown at section 2, using headings like "## Macro Cycle Assessment", "## Key Signals This Week", "## Allocation Recommendations", and "## Risk Factors to Watch".`;
 }
 
 // ---------- Anthropic ----------
@@ -391,11 +470,13 @@ async function generate({ docsRoot, userDocsRoot, liveJson, historyJson, provide
   const title = `Weekly Macro Brief — ${new Date(weekDate + "T12:00:00Z")
     .toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
 
-  writeBriefFile(userDocsRoot, slug, brief);
+  const mergedBrief = mergeBriefWithSnapshot(brief, liveJson.dailyFlows);
+
+  writeBriefFile(userDocsRoot, slug, mergedBrief);
   updateBriefIndex(userDocsRoot, docsRoot, slug, title, slug);
   updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations);
 
   return { slug, title, date: slug };
 }
 
-module.exports = { generate };
+module.exports = { generate, __test: { renderMoneyFlowSnapshot, mergeBriefWithSnapshot, stripLeadingSnapshotSection } };
