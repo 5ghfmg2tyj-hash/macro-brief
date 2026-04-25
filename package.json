@@ -1,6 +1,6 @@
 {
   "name": "macro-brief",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Weekly macro allocation tracker — native macOS app",
   "private": true,
   "main": "electron/main.js",
