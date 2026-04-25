@@ -10,6 +10,32 @@ const TIMEOUT_MS    = 120_000; // AI calls can take a while
 const MAX_RETRIES   = 3;
 const RETRYABLE     = new Set([429, 500, 503, 529]); // overloaded / rate-limited / transient
 
+function summarizeApiErrorBody(text) {
+  const trimmed = String(text || "").trim();
+  if (!trimmed) return "";
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    const msg = parsed?.error?.message || parsed?.message;
+    if (msg) return String(msg).replace(/\s+/g, " ").trim();
+  } catch {}
+
+  return trimmed.replace(/\s+/g, " ").trim().slice(0, 240);
+}
+
+function formatApiError(providerLabel, status, text) {
+  const detail = summarizeApiErrorBody(text);
+  return detail ? `${providerLabel} API ${status}: ${detail}` : `${providerLabel} API ${status}`;
+}
+
+function buildRetryFailureMessage(label, lastErr) {
+  const attempts = MAX_RETRIES + 1;
+  const detail = lastErr?.message
+    ? lastErr.message.replace(/ — retrying…$/, "")
+    : `${label} kept returning retryable errors.`;
+  return `${label} request failed after ${attempts} attempts. ${detail} Please wait a few minutes and try again.`;
+}
+
 // Retry with exponential backoff. attemptFn must throw err with err.retryable=true to trigger a retry.
 async function withRetry(attemptFn, label, onStatus) {
   let lastErr;
@@ -25,7 +51,7 @@ async function withRetry(attemptFn, label, onStatus) {
     try   { return await attemptFn(); }
     catch (e) { lastErr = e; if (!e.retryable) throw e; }
   }
-  const finalErr = new Error(`${label} servers are overloaded. Tried ${MAX_RETRIES} times. Please wait a few minutes and try again.`);
+  const finalErr = new Error(buildRetryFailureMessage(label, lastErr));
   finalErr.cause = lastErr;
   throw finalErr;
 }
@@ -298,11 +324,8 @@ async function callAnthropic(liveJson, historyJson, model, apiKey, onStatus) {
 
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
-      const err = new Error(
-        RETRYABLE.has(resp.status)
-          ? `Anthropic servers busy (${resp.status}) — retrying…`
-          : `Anthropic API ${resp.status}: ${txt}`
-      );
+      const detail = formatApiError("Anthropic", resp.status, txt);
+      const err = new Error(RETRYABLE.has(resp.status) ? `${detail} — retrying…` : detail);
       err.retryable = RETRYABLE.has(resp.status);
       throw err;
     }
@@ -368,11 +391,8 @@ async function callOpenAI(liveJson, historyJson, model, apiKey, onStatus) {
 
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
-      const err = new Error(
-        RETRYABLE.has(resp.status)
-          ? `OpenAI servers busy (${resp.status}) — retrying…`
-          : `OpenAI API ${resp.status}: ${txt}`
-      );
+      const detail = formatApiError("OpenAI", resp.status, txt);
+      const err = new Error(RETRYABLE.has(resp.status) ? `${detail} — retrying…` : detail);
       err.retryable = RETRYABLE.has(resp.status);
       throw err;
     }
@@ -480,4 +500,14 @@ async function generate({ docsRoot, userDocsRoot, liveJson, historyJson, provide
   return { slug, title, date: slug, generatedAt };
 }
 
-module.exports = { generate, __test: { renderMoneyFlowSnapshot, mergeBriefWithSnapshot, stripLeadingSnapshotSection } };
+module.exports = {
+  generate,
+  __test: {
+    buildRetryFailureMessage,
+    formatApiError,
+    mergeBriefWithSnapshot,
+    renderMoneyFlowSnapshot,
+    stripLeadingSnapshotSection,
+    summarizeApiErrorBody,
+  },
+};

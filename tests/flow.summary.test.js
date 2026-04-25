@@ -58,3 +58,10 @@ test("mergeBriefWithSnapshot replaces a model-authored snapshot section", () => 
   expect(merged).not.toContain("old table");
   expect(merged).toContain("+$2.50B");
 });
+
+test("buildRetryFailureMessage preserves the real OpenAI error details", () => {
+  const err = new Error("OpenAI API 429: Rate limit reached for gpt-4o — retrying…");
+
+  expect(briefTest.buildRetryFailureMessage("OpenAI", err))
+    .toBe("OpenAI request failed after 4 attempts. OpenAI API 429: Rate limit reached for gpt-4o Please wait a few minutes and try again.");
+});
