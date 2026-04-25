@@ -394,7 +394,7 @@ function writeBriefFile(userDocsRoot, slug, markdown) {
   fs.writeFileSync(path.join(briefsDir, `${slug}.md`), markdown, "utf8");
 }
 
-function updateBriefIndex(userDocsRoot, docsRoot, slug, title, date) {
+function updateBriefIndex(userDocsRoot, docsRoot, slug, title, date, generatedAt) {
   const userPath   = path.join(userDocsRoot, "briefs", "index.json");
   const bundlePath = path.join(docsRoot,     "briefs", "index.json");
   let index = { briefs: [] };
@@ -403,7 +403,7 @@ function updateBriefIndex(userDocsRoot, docsRoot, slug, title, date) {
 
   const note = index._note;
   const list = (index.briefs || []).filter(b => b.slug !== slug);
-  list.unshift({ slug, title, date });
+  list.unshift({ slug, title, date, generatedAt });
   const out = note ? { _note: note, briefs: list } : { briefs: list };
   fs.mkdirSync(path.join(userDocsRoot, "briefs"), { recursive: true });
   fs.writeFileSync(userPath, JSON.stringify(out, null, 2) + "\n", "utf8");
@@ -467,16 +467,17 @@ async function generate({ docsRoot, userDocsRoot, liveJson, historyJson, provide
   }
 
   const slug  = weekDate.slice(0, 10);
+  const generatedAt = new Date().toISOString().replace(/\.\d+Z$/, "Z");
   const title = `Weekly Macro Brief — ${new Date(weekDate + "T12:00:00Z")
     .toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
 
   const mergedBrief = mergeBriefWithSnapshot(brief, liveJson.dailyFlows);
 
   writeBriefFile(userDocsRoot, slug, mergedBrief);
-  updateBriefIndex(userDocsRoot, docsRoot, slug, title, slug);
+  updateBriefIndex(userDocsRoot, docsRoot, slug, title, slug, generatedAt);
   updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations);
 
-  return { slug, title, date: slug };
+  return { slug, title, date: slug, generatedAt };
 }
 
 module.exports = { generate, __test: { renderMoneyFlowSnapshot, mergeBriefWithSnapshot, stripLeadingSnapshotSection } };

@@ -165,7 +165,15 @@
 
   async function loadBrief(b) {
     document.getElementById("brief-title").textContent = b.title || b.slug;
-    document.getElementById("brief-sub").textContent   = b.date || "";
+    const subParts = [];
+    if (b.date) subParts.push(b.date);
+    if (b.generatedAt) {
+      const ts = new Date(b.generatedAt);
+      if (!isNaN(ts)) {
+        subParts.push(`Refreshed ${ts.toLocaleString()}`);
+      }
+    }
+    document.getElementById("brief-sub").textContent = subParts.join(" • ");
     try {
       const r = await fetch(`briefs/${b.slug}.md`, { cache: "no-store" });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
