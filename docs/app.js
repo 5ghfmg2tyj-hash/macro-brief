@@ -3,10 +3,14 @@
 // ==============================================================================
 
 (function () {
+  const vEl = document.getElementById("app-version");
+  if (vEl && window.macroBrief?.version) vEl.textContent = `v${window.macroBrief.version}`;
+
   const state = {
-    history: null,
-    flows: null,
-    briefs: null,      // { briefs: [{ slug, title, date }...] }
+    history:    null,
+    flows:      null,
+    dailyFlows: null,
+    briefs:     null,  // { briefs: [{ slug, title, date }...] }
     liveLoaded: false
   };
 
@@ -33,15 +37,24 @@
     return r.json();
   }
 
+  async function loadDailyFlows() {
+    const url = window.macroBrief?.dailyFlowsUrl;
+    if (!url) return null;
+    try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? r.json() : null; }
+    catch { return null; }
+  }
+
   async function loadAll() {
     try {
-      const [history, flows] = await Promise.all([
+      const [history, flows, dailyFlows] = await Promise.all([
         loadJSON("data/history.json"),
-        loadJSON("data/flows.json")
+        loadJSON("data/flows.json"),
+        loadDailyFlows(),
       ]);
-      state.history = history;
-      state.flows   = flows;
-      window.Chart.init({ history, flows });
+      state.history    = history;
+      state.flows      = flows;
+      state.dailyFlows = dailyFlows;
+      window.Chart.init({ history, flows, dailyFlows });
     } catch (e) {
       document.getElementById("subtitle").textContent =
         "Failed to load data: " + e.message;
@@ -282,10 +295,87 @@
     return out.join("\n");
   }
 
+  // ---------- generate brief ----------
+  async function generateBrief() {
+    const btn    = document.getElementById("generate-brief-btn");
+    const status = document.getElementById("generate-status");
+
+    btn.disabled = true;
+    const setStatus = (msg) => {
+      status.className = "generate-status";
+      status.innerHTML = `<div class="spinner"></div> ${msg}`;
+    };
+    setStatus("Generating — this takes 30–60 seconds…");
+
+    try {
+      await window.macroBrief.generateBrief();
+      // brief-generated IPC event triggers reloadAfterGeneration
+    } catch (e) {
+      status.className   = "generate-status error";
+      status.textContent = "Error: " + (e.message || String(e));
+      btn.disabled = false;
+    }
+  }
+
+  // Live status updates from main process (e.g. retry countdown)
+  if (window.macroBrief?.onBriefStatus) {
+    window.macroBrief.onBriefStatus((msg) => {
+      const status = document.getElementById("generate-status");
+      if (status && status.classList.contains("generate-status") && !status.classList.contains("error") && !status.classList.contains("ok")) {
+        status.innerHTML = `<div class="spinner"></div> ${msg}`;
+      }
+    });
+  }
+
+  async function reloadAfterGeneration(result) {
+    const btn    = document.getElementById("generate-brief-btn");
+    const status = document.getElementById("generate-status");
+
+    // Reload briefs index and chart data
+    try {
+      const [history, flows, dailyFlows] = await Promise.all([
+        loadJSON("data/history.json"),
+        loadJSON("data/flows.json"),
+        loadDailyFlows(),
+      ]);
+      state.history    = history;
+      state.flows      = flows;
+      state.dailyFlows = dailyFlows;
+      window.Chart.init({ history, flows, dailyFlows });
+    } catch {}
+
+    try {
+      state.briefs = await loadJSON("briefs/index.json");
+      renderBriefHistory();
+      if (result) {
+        const b = state.briefs.briefs.find(x => x.slug === result.slug);
+        if (b) loadBrief(b);
+      } else {
+        loadLatestBrief();
+      }
+    } catch {}
+
+    status.className   = "generate-status ok";
+    status.textContent = "Brief generated ✓";
+    btn.disabled = false;
+    setTimeout(() => { if (status.textContent === "Brief generated ✓") status.textContent = ""; }, 4000);
+  }
+
   // ---------- bootstrap ----------
   document.addEventListener("DOMContentLoaded", () => {
     initTabs();
     document.getElementById("refresh-live").addEventListener("click", refreshLive);
+
+    const genBtn = document.getElementById("generate-brief-btn");
+    if (genBtn) {
+      if (window.macroBrief && window.macroBrief.isElectron) {
+        genBtn.addEventListener("click", generateBrief);
+        window.macroBrief.onBriefGenerated((result) => reloadAfterGeneration(result));
+      } else {
+        genBtn.hidden = true;
+      }
+    }
+
     loadAll();
   });
 })();

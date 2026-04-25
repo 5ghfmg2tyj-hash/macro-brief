@@ -6,14 +6,15 @@
 // ==============================================================================
 
 (function () {
-  let HIST, FLOWS, ASSETS, WEEKS, GROUPS;
+  let HIST, FLOWS, DAILY_FLOWS_DATA, ASSETS, WEEKS, HIST_WEEKS, GROUPS;
   let activeGroup = "all";
   let activeView  = "tilt";
   let visibleAssets = new Set();
 
   const VIEWS = [
-    { key: "tilt",  label: "Tilt (allocation score)" },
-    { key: "flows", label: "Flows (weekly net, $B)" }
+    { key: "tilt",       label: "Tilt (allocation score)" },
+    { key: "flows",      label: "Weekly Flows ($B)" },
+    { key: "dailyflows", label: "Daily Flows ($B)" },
   ];
 
   const W = 960, H = 440;
@@ -23,17 +24,35 @@
   // --------------------- helpers ---------------------
   const xScale = i => M.l + (i / (WEEKS.length - 1)) * iw;
 
-  function flowSeries(a) { return (FLOWS.flows || {})[a.key] || null; }
+  function flowSeries(a)      { return (FLOWS?.flows || {})[a.key] || null; }
+  function dailyFlowSeries(a) {
+    if (!DAILY_FLOWS_DATA?.series?.length) return null;
+    const s = DAILY_FLOWS_DATA.series.map(e => e.flows?.[a.key] ?? null);
+    return s.some(v => v != null) ? s : null;
+  }
+  function getDailyLabels() {
+    if (!DAILY_FLOWS_DATA?.series) return [];
+    return DAILY_FLOWS_DATA.series.map(e => {
+      const d = new Date(e.date + "T12:00:00Z");
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    });
+  }
   function isPlottable(a) {
-    return activeView === "tilt" ? true : !!flowSeries(a);
+    if (activeView === "tilt")       return true;
+    if (activeView === "flows")      return !!flowSeries(a);
+    if (activeView === "dailyflows") return !!dailyFlowSeries(a);
+    return false;
   }
   function seriesFor(a) {
-    return activeView === "tilt" ? a.alloc : flowSeries(a);
+    if (activeView === "tilt")       return a.alloc;
+    if (activeView === "flows")      return flowSeries(a);
+    if (activeView === "dailyflows") return dailyFlowSeries(a);
   }
   function getFlowDomain() {
     const vals = [];
+    const fn = activeView === "dailyflows" ? dailyFlowSeries : flowSeries;
     ASSETS.forEach(a => {
-      if (visibleAssets.has(a.key) && flowSeries(a)) vals.push(...flowSeries(a));
+      if (visibleAssets.has(a.key)) { const s = fn(a); if (s) vals.push(...s.filter(v => v != null)); }
     });
     if (vals.length === 0) return [-1, 1];
     const lo = Math.min(...vals, 0);
@@ -190,14 +209,22 @@
 
     const sub = document.getElementById("subtitle");
     if (sub) {
-      sub.textContent = (activeView === "tilt")
-        ? `Macro brief allocation calls, ${WEEKS[0]} – ${WEEKS[WEEKS.length-1]}. Line value = allocation score (−1 UW, 0 Neutral, +1 OW). Toggle "Flows" to swap the y-axis to actual weekly net fund flows ($B).`
-        : `Weekly net fund flows ($B) for the underlying vehicles that represent each asset class. MMF flows (cash) dominate the scale — toggle cash off to zoom into the ETF series. Non-flow-tracked categories (IG, Treasuries, Commodities) are hidden.`;
+      if (activeView === "tilt") {
+        sub.textContent = `Macro brief allocation calls, ${HIST_WEEKS[0]} – ${HIST_WEEKS[HIST_WEEKS.length-1]}. Line value = allocation score (−1 UW, 0 Neutral, +1 OW).`;
+      } else if (activeView === "flows") {
+        sub.textContent = `Weekly net fund flows ($B) for the underlying vehicles. MMF cash flows dominate scale — toggle Cash off to zoom ETF series.`;
+      } else {
+        const n = DAILY_FLOWS_DATA?.series?.length || 0;
+        sub.textContent = `Daily fund flows ($B) estimated from ETF shares-outstanding changes (creation/redemption proxy). ${n} trading days of history. Cash and Commodities excluded (no daily ETF proxy).`;
+      }
     }
   }
 
   // --------------------- render chart ---------------------
   function render() {
+    // Sync WEEKS to the active view's x-axis labels
+    WEEKS = (activeView === "dailyflows") ? getDailyLabels() : HIST_WEEKS;
+
     const svg = document.getElementById("chart");
     svg.innerHTML = "";
     const NS = "http://www.w3.org/2000/svg";
@@ -233,7 +260,10 @@
       }, label));
     });
 
+    // For daily view with many points, show a label every ~7 entries to avoid crowding
+    const labelEvery = (activeView === "dailyflows" && WEEKS.length > 14) ? 7 : 1;
     WEEKS.forEach((w, i) => {
+      if (i % labelEvery !== 0 && i !== WEEKS.length - 1) return;
       svg.appendChild(el("text", {
         x: xScale(i), y: H - M.b + 22, fill: "#94a3b8",
         "text-anchor": "middle", "font-size": 12
@@ -302,7 +332,7 @@
           <span class="tt-delta ${mom.cls}">${mom.txt}</span>
           <span class="tt-delta ${yoy.cls}">${yoy.txt}</span>`;
       }).join("");
-    } else {
+    } else if (activeView === "flows") {
       gridCols = "auto 1fr auto auto";
       headerCells = `
         <div></div>
@@ -326,6 +356,31 @@
           <span class="tt-name"><strong>${a.label}</strong><br><span style="color:var(--muted);font-size:10px">${a.flowIdx || ""}</span></span>
           <span class="tt-val ${flowCls}">${fmtFlow(cur)}</span>
           <span class="tt-val" style="color:var(--muted);font-size:10.5px">${scoreLabel(a.alloc[i])}</span>`;
+      }).join("");
+    } else {
+      // dailyflows
+      gridCols = "auto 1fr auto";
+      const date = DAILY_FLOWS_DATA?.series?.[i]?.date || WEEKS[i] || "";
+      headerCells = `
+        <div></div>
+        <div class="tt-head">Asset · Vehicle</div>
+        <div class="tt-head" style="text-align:right">Daily Flow</div>`;
+      subLine = `Daily net flow estimate (shares-outstanding proxy) for ${date}.`;
+      rows = visible.map(a => {
+        const ds = dailyFlowSeries(a);
+        if (!ds) {
+          return `
+            <span class="tt-sw" style="background:${a.color};opacity:0.4"></span>
+            <span class="tt-name"><strong>${a.label}</strong><br><span style="color:var(--muted);font-size:10px">no daily proxy</span></span>
+            <span class="tt-val" style="color:var(--muted)">—</span>`;
+        }
+        const cur = ds[i];
+        const flowCls = cur > 0 ? "delta-up" : (cur < 0 ? "delta-dn" : "delta-flat");
+        const etfLabel = ETF_FLOWS_MAP[a.key] || "";
+        return `
+          <span class="tt-sw" style="background:${a.color}"></span>
+          <span class="tt-name"><strong>${a.label}</strong><br><span style="color:var(--muted);font-size:10px">${etfLabel}</span></span>
+          <span class="tt-val ${flowCls}">${fmtFlow(cur)}</span>`;
       }).join("");
     }
 
@@ -353,13 +408,22 @@
     if (tip) tip.style.opacity = 0;
   }
 
+  // ETF vehicle labels for daily flow tooltip
+  const ETF_FLOWS_MAP = {
+    usLarge: "SPY+IVV+VOO", usSmid: "IWM",  intlDev: "EFA",
+    em:      "EEM",         gold:   "GLD",  bitcoin: "IBIT+FBTC",
+    hy:      "HYG+JNK",    ig:     "LQD",  treas:   "IEF+TLT",
+  };
+
   // --------------------- public init ---------------------
-  function init({ history, flows }) {
-    HIST   = history;
-    FLOWS  = flows;
-    WEEKS  = history.weeks;
-    ASSETS = history.assets;
-    GROUPS = history.groups;
+  function init({ history, flows, dailyFlows }) {
+    HIST              = history;
+    FLOWS             = flows;
+    DAILY_FLOWS_DATA  = dailyFlows || null;
+    HIST_WEEKS        = history.weeks;
+    WEEKS             = HIST_WEEKS;
+    ASSETS            = history.assets;
+    GROUPS            = history.groups;
     visibleAssets = new Set(ASSETS.map(a => a.key));
 
     // footer copy
@@ -368,8 +432,8 @@
       footer.innerHTML = `
         <strong>Tilt data:</strong> Allocation scores and representative index values from <code>data/history.json</code>.
         ${history.notes ? "<br>" + history.notes : ""}<br><br>
-        <strong>Flows data ($B net, weekly):</strong> From <code>data/flows.json</code>.
-        ${flows._note || ""}
+        <strong>Weekly Flows ($B):</strong> From <code>data/flows.json</code> — manually committed from ICI/ETF.com/VettaFi weekly reports. ${flows?._note || ""}<br><br>
+        <strong>Daily Flows ($B):</strong> Estimated from ETF shares-outstanding changes (creation/redemption mechanism). Δshares × price ≈ net daily flow. Accumulates from first app run; Cash and Commodities excluded.
       `;
     }
 

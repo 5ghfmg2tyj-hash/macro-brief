@@ -16,8 +16,9 @@
 
 (function () {
   async function load() {
-    const r = await fetch("data/live.json", { cache: "no-store" });
-    if (!r.ok) throw new Error(`data/live.json: HTTP ${r.status}`);
+    const url = (window.macroBrief && window.macroBrief.liveDataUrl) || "data/live.json";
+    const r   = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
     return r.json();
   }
 

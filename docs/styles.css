@@ -310,6 +310,165 @@ svg#chart { display: block; width: 100%; height: auto; }
 .brief-history a { text-decoration: none; }
 .brief-history a:hover { text-decoration: underline; }
 
+/* ============ GENERATE BRIEF ============ */
+.btn-generate {
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  color: #0b1220;
+  font-weight: 700;
+  padding: 9px 18px;
+  font-size: 13px;
+}
+.btn-generate:hover { filter: brightness(1.08); }
+.btn-generate:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+.generate-status {
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.generate-status.error { color: var(--bad); }
+.generate-status.ok    { color: var(--ok); }
+
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(148,163,184,0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============ SETTINGS ============ */
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.settings-label {
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 130px;
+  flex-shrink: 0;
+}
+.settings-select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 240px;
+}
+.settings-select:focus { outline: 2px solid var(--accent); }
+
+.seg-control {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.seg-btn {
+  background: var(--panel-2);
+  border: none;
+  color: var(--muted);
+  padding: 7px 16px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-right: 1px solid var(--border);
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn:hover { background: #475569; color: var(--text); }
+.seg-btn.active { background: var(--accent-dim); color: var(--text); font-weight: 600; }
+
+.key-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.settings-input {
+  flex: 1;
+  background: #0b1220;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.settings-input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+.btn-sm {
+  padding: 7px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.btn-danger {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+.btn-danger:hover { background: #991b1b; }
+
+.settings-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.key-status {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.key-status.saved { background: rgba(74,222,128,0.12); color: var(--ok); }
+.key-status.unset { background: rgba(148,163,184,0.1); color: var(--muted); }
+
+/* ============ TOGGLE SWITCH ============ */
+.toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.toggle-wrap input[type="checkbox"] { display: none; }
+.toggle-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--muted);
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.toggle-wrap input:checked ~ .toggle-track,
+.toggle-wrap input:checked + .toggle-track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.toggle-wrap input:checked ~ .toggle-track .toggle-thumb,
+.toggle-wrap input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(18px);
+  background: #fff;
+}
+.toggle-label { font-size: 13px; color: var(--text); }
+
 /* ============ FOOTER ============ */
 .page-footer {
   max-width: 1200px;
@@ -319,100 +478,9 @@ svg#chart { display: block; width: 100%; height: auto; }
   text-align: center;
 }
 
-/* ============ INSTALL BUTTON (PWA) ============ */
-.btn-install {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
-  color: #0b1220;
-  font-weight: 600;
-  padding: 7px 14px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  font-family: inherit;
-}
-.btn-install:hover {
-  filter: brightness(1.06);
-}
-.btn-install .install-icon {
-  font-size: 14px;
-  line-height: 1;
-  transform: translateY(-1px);
-}
-
-/* ============ iOS INSTALL SHEET ============ */
-.ios-install-sheet {
-  position: fixed;
-  inset: 0;
-  background: rgba(4, 8, 16, 0.72);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 100;
-  padding: 12px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
-}
-.ios-install-sheet[hidden] { display: none; }
-.ios-install-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 22px 22px 18px 22px;
-  max-width: 420px;
-  width: 100%;
-  position: relative;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-}
-.ios-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 14px;
-}
-.ios-steps {
-  padding-left: 20px;
-  margin: 0 0 10px 0;
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: #cbd5e1;
-}
-.ios-steps li { margin: 6px 0; }
-.ios-icon {
-  display: inline-block;
-  padding: 0 4px;
-  color: var(--accent);
-  font-weight: 700;
-}
-.ios-note { font-size: 11.5px; margin-top: 6px; }
-.ios-close {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 4px 8px;
-}
-.ios-close:hover { color: var(--text); }
-
-/* ============ STANDALONE (running as installed PWA) ============ */
-@media (display-mode: standalone) {
-  /* Extra top padding so the header doesn't crowd the status bar on iOS. */
-  .topbar-inner { padding-top: calc(12px + env(safe-area-inset-top, 0)); }
-  /* Safe bottom inset. */
-  .page-footer  { padding-bottom: env(safe-area-inset-bottom, 0); }
-}
-
 @media (max-width: 640px) {
   .topbar-inner { flex-direction: column; align-items: flex-start; }
   .tabs { width: 100%; overflow-x: auto; }
   .container { padding: 16px; }
   .panel { padding: 16px; }
-  .btn-install { align-self: stretch; justify-content: center; }
 }

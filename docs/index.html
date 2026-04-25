@@ -5,20 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Macro Brief — Allocation Tracker</title>
 <meta name="description" content="Weekly macro allocation calls with interactive Tilt/Flows chart and live market data."/>
-
-<!-- ========= PWA / theming ========= -->
-<link rel="manifest" href="manifest.webmanifest"/>
 <meta name="theme-color" content="#0b1220"/>
 <meta name="color-scheme" content="dark"/>
-
-<!-- iOS PWA -->
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Macro Brief"/>
-<link rel="apple-touch-icon" href="icons/icon-180.png"/>
-<link rel="icon" type="image/png" href="icons/favicon.png"/>
-
 <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
@@ -33,15 +21,12 @@
       </div>
     </div>
     <nav class="tabs" role="tablist">
-      <button class="tab active" data-tab="chart"  role="tab">Chart</button>
-      <button class="tab"        data-tab="live"   role="tab">Live data</button>
-      <button class="tab"        data-tab="brief"  role="tab">This week's brief</button>
-      <button class="tab"        data-tab="about"  role="tab">About</button>
+      <button class="tab active" data-tab="chart"    role="tab">Chart</button>
+      <button class="tab"        data-tab="live"     role="tab">Live data</button>
+      <button class="tab"        data-tab="brief"    role="tab">This week's brief</button>
+      <button class="tab"        data-tab="about"    role="tab">About</button>
+      <button class="tab"        data-tab="settings" role="tab">Settings</button>
     </nav>
-    <button class="btn btn-install" id="install-btn" hidden aria-label="Install app">
-      <span class="install-icon" aria-hidden="true">⬇︎</span>
-      <span class="install-label">Install</span>
-    </button>
   </div>
 </header>
 
@@ -82,10 +67,8 @@
     <div class="panel panel-head">
       <h1>Live market data</h1>
       <div class="subtitle">
-        Latest available levels read from <code>data/live.json</code>, which is
-        rewritten by the <code>fetch_live.py</code> fetcher running on a local
-        cron (launchd) every 30 minutes during US market hours. No API keys,
-        no backend service to host.
+        Latest available levels fetched directly from Yahoo Finance, FRED, and CoinGecko.
+        Refreshed automatically every 30 minutes while the app is open.
         Last refresh: <span id="live-ts">—</span>
       </div>
       <div style="margin-top:12px;">
@@ -103,11 +86,9 @@
     <div class="panel">
       <div class="section-label">Notes</div>
       <ul class="notes">
-        <li>Data is refreshed by <code>scripts/fetch_live.py</code>, scheduled via a launchd LaunchAgent (see <code>scripts/com.macro-brief.fetch.plist</code>). It fetches server-side (Python <code>urllib</code>), so CORS never enters the picture.</li>
-        <li>The fetcher auto-commits & pushes <code>docs/data/live.json</code>, so the deployed GitHub Pages site reflects the freshest data within ~60 seconds of each run.</li>
-        <li>The <strong>Reload</strong> button re-reads <code>live.json</code> from the server — it does not trigger a fresh fetch. To force a fetch, run <code>./scripts/fetch_and_push.sh</code> from the repo root.</li>
-        <li>FRED series update once per business day (~4pm ET); intraday quotes come from Yahoo / CoinGecko.</li>
-        <li>OAS spreads (IG, HY) are in basis points — FRED reports them in percent and the fetcher auto-scales.</li>
+        <li>FRED series update once per business day (~4pm ET); intraday quotes come from Yahoo Finance / CoinGecko.</li>
+        <li>OAS spreads (IG, HY) are in basis points — FRED reports them in percent and the app auto-scales.</li>
+        <li>The <strong>Reload</strong> button re-reads the last fetched data. A new network fetch happens automatically every 30 minutes.</li>
       </ul>
     </div>
   </section>
@@ -117,6 +98,10 @@
     <div class="panel panel-head">
       <h1 id="brief-title">This week's brief</h1>
       <div class="subtitle" id="brief-sub">Loading latest brief…</div>
+      <div style="margin-top:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <button class="btn btn-generate" id="generate-brief-btn">Generate new brief</button>
+        <span class="generate-status" id="generate-status"></span>
+      </div>
     </div>
     <div class="panel">
       <div id="brief-body" class="brief-body">
@@ -133,24 +118,14 @@
   <section class="tab-panel" id="tab-about" role="tabpanel">
     <div class="panel panel-head">
       <h1>About this app</h1>
-      <div class="subtitle">A static PWA that renders the weekly macro brief's allocation history, live market data, and the full text of each week's note. Installable from the browser on iOS, Android, macOS, Windows, and Linux.</div>
+      <div class="subtitle">Native macOS app that renders the weekly macro brief's allocation history, live market data, and the full text of each week's note.</div>
     </div>
 
     <div class="panel">
-      <h3>Install as an app</h3>
-      <p id="install-about">Click the <strong>Install</strong> button in the header to add Macro Brief to your home screen / Dock / Start Menu.</p>
-      <p class="muted" id="install-ios-hint" hidden>
-        On iPhone / iPad: tap the <strong>Share</strong> icon in Safari, then
-        <strong>Add to Home Screen</strong>. The app opens full-screen with its
-        own icon, same as any native app.
-      </p>
-    </div>
-
-    <div class="panel">
-      <h3>How it updates</h3>
-      <p>Each Monday, a scheduled task generates a new weekly brief and appends (or overwrites, within a ±5 day window) a weekly point to <code>data/history.json</code> and <code>data/flows.json</code>, plus a markdown file in <code>briefs/</code>. Committing and pushing to <code>main</code> is the only deploy step — GitHub Pages serves the <code>/docs</code> folder automatically.</p>
+      <h3>How it works</h3>
+      <p>Live market data is fetched automatically every 30 minutes from Yahoo Finance, FRED, and CoinGecko. Click <strong>Generate new brief</strong> on the Brief tab to produce a fresh analysis using your configured AI provider.</p>
       <h3>Data sources</h3>
-      <p>Bundled JSON for historical tilts and flows. Live quotes are fetched by the local cron from:</p>
+      <p>Bundled JSON for historical tilts and flows. Live quotes are fetched directly by the app from:</p>
       <ul class="notes">
         <li><a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a> CSV endpoints — Treasury yields, OAS spreads, WTI, gold fix, Fed funds.</li>
         <li><a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a> chart API — equity indices and ETFs.</li>
@@ -158,71 +133,115 @@
         <li><a href="https://www.coingecko.com/" target="_blank" rel="noopener">CoinGecko</a> — BTC spot.</li>
       </ul>
       <h3>Flow data</h3>
-      <p>ETF and MMF flow figures come from published weekly reports (ICI, ETF.com, VettaFi). They are committed to <code>flows.json</code> each week — not fetched live, because the underlying sources don't expose a clean CORS endpoint.</p>
-      <h3>Offline</h3>
-      <p>A service worker caches the app shell so Macro Brief opens instantly and works offline. Live data and briefs are re-fetched when online; the last cached copy is shown when offline.</p>
+      <p>ETF and MMF flow figures come from published weekly reports (ICI, ETF.com, VettaFi). They are committed to <code>flows.json</code> each week.</p>
       <h3>Source</h3>
       <p>Code lives on GitHub. PRs welcome.</p>
+    </div>
+  </section>
+
+  <!-- ========= SETTINGS TAB ========= -->
+  <section class="tab-panel" id="tab-settings" role="tabpanel">
+    <div class="panel panel-head">
+      <h1>Settings</h1>
+      <div class="subtitle">Configure your AI provider and API key for brief generation. Keys are stored encrypted in the macOS Keychain.</div>
+    </div>
+
+    <div class="panel">
+      <h3>AI Provider</h3>
+      <div class="settings-row">
+        <label class="settings-label">Provider</label>
+        <div class="seg-control" id="provider-seg">
+          <button class="seg-btn active" data-value="anthropic">Anthropic (Claude)</button>
+          <button class="seg-btn"        data-value="openai">OpenAI</button>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <label class="settings-label">Model</label>
+        <select class="settings-select" id="model-select"></select>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>API Key</h3>
+      <div class="settings-row">
+        <label class="settings-label" id="key-label">Anthropic API key</label>
+        <div class="key-status" id="key-status"></div>
+      </div>
+      <div class="key-input-row">
+        <input type="password" class="settings-input" id="api-key-input"
+               placeholder="Paste API key here…" autocomplete="off" spellcheck="false"/>
+        <button class="btn btn-sm" id="key-show-btn" title="Show / hide">Show</button>
+      </div>
+      <div class="settings-actions">
+        <button class="btn" id="key-save-btn">Save key</button>
+        <button class="btn btn-danger" id="key-clear-btn">Clear saved key</button>
+      </div>
+      <p class="muted" style="font-size:12px; margin-top:10px;">
+        The key is encrypted with the macOS Keychain before being written to disk.
+        It is never sent anywhere except the selected AI provider's API endpoint.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h3>Scheduled Brief Generation</h3>
+      <div class="settings-row">
+        <label class="settings-label">Auto-generate</label>
+        <label class="toggle-wrap" title="Generate a new brief automatically on a schedule">
+          <input type="checkbox" id="auto-generate-toggle"/>
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label" id="auto-generate-label">Off</span>
+        </label>
+      </div>
+
+      <div id="schedule-options" hidden>
+        <div class="settings-row">
+          <label class="settings-label">Day</label>
+          <select class="settings-select" id="auto-day-select">
+            <option value="0">Sunday</option>
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <label class="settings-label">Time</label>
+          <select class="settings-select" id="auto-hour-select"></select>
+        </div>
+        <div class="settings-row">
+          <label class="settings-label">Next run</label>
+          <span class="muted" id="next-run-label" style="font-size:13px;">—</span>
+        </div>
+      </div>
+
+      <div class="settings-row" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+        <label class="settings-label">Start at login</label>
+        <label class="toggle-wrap" title="Keep app running in background so the schedule fires even with no windows open">
+          <input type="checkbox" id="login-item-toggle"/>
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label">Run in background when Mac starts</span>
+        </label>
+      </div>
+      <p class="muted" style="font-size:12px; margin-top:8px;">
+        When enabled, the app launches silently at login with no window. It generates
+        the brief at the scheduled time and sends a notification — click it to open the app.
+      </p>
     </div>
   </section>
 
 </main>
 
 <footer class="page-footer">
-  <span class="muted">Built as a static PWA · deployed via GitHub Pages · no backend, no tracking</span>
+  <span class="muted">Native macOS app · no backend, no tracking · <span id="app-version">v1.2.5</span></span>
 </footer>
-
-<!-- ========= Install hint overlay (iOS + macOS Safari) ========= -->
-<div class="ios-install-sheet" id="ios-sheet" hidden>
-  <div class="ios-install-card">
-    <button class="ios-close" id="ios-close" aria-label="Close">×</button>
-
-    <!-- iOS steps (shown by default; hidden on macOS) -->
-    <div id="install-ios-steps">
-      <div class="ios-title">Install on iPhone / iPad</div>
-      <ol class="ios-steps">
-        <li>Tap the <strong>Share</strong> icon
-            <span class="ios-icon" aria-hidden="true">⬆︎</span>
-            at the bottom of Safari.</li>
-        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-        <li>Tap <strong>Add</strong>. Macro Brief launches full-screen with its own icon.</li>
-      </ol>
-      <p class="muted ios-note">
-        Works in Safari only — iOS blocks this feature in Chrome/Firefox/Edge on iPhone.
-      </p>
-    </div>
-
-    <!-- macOS steps (hidden by default; shown on macOS Safari 17–25) -->
-    <div id="install-mac-steps" hidden>
-      <div class="ios-title">Install on Mac</div>
-      <ol class="ios-steps">
-        <li>In Safari, open the <strong>File</strong> menu.</li>
-        <li>Click <strong>Add to Dock…</strong></li>
-        <li>Optionally rename, then click <strong>Add</strong>. Macro Brief opens in its own window.</li>
-      </ol>
-      <p class="muted ios-note">
-        Requires macOS Sonoma (14) or later with Safari 17+.
-      </p>
-    </div>
-
-    <!-- Generic steps (shown on Chrome/Firefox/Safari 26+ when browser prompt is unavailable) -->
-    <div id="install-browser-steps" hidden>
-      <div class="ios-title">Install this app</div>
-      <ol class="ios-steps">
-        <li>Look for the <strong>install icon</strong> (⊕ or similar) in the browser's address bar and click it.</li>
-        <li>No icon? Open the <strong>browser menu</strong> (⋮ or ☰) and choose <strong>Install app</strong> or <strong>Add to home screen</strong>.</li>
-      </ol>
-      <p class="muted ios-note">
-        The install option appears after your first visit. Try reloading the page if it's missing.
-      </p>
-    </div>
-  </div>
-</div>
 
 <script src="live.js"></script>
 <script src="chart.js"></script>
 <script src="app.js"></script>
-<script src="pwa.js"></script>
+<script src="settings.js"></script>
 
 </body>
 </html>
