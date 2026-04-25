@@ -181,9 +181,11 @@ const ETF_FLOWS = [
 ];
 
 // Increment when new ETFs are added to ETF_FLOWS — triggers a fresh bootstrap on existing installs.
-const BOOTSTRAP_VERSION = 4;
-// Earliest date to include in bootstrap history.
-const BOOTSTRAP_START = "2026-01-01";
+const BOOTSTRAP_VERSION = 5;
+
+function startOfYearIso(today) {
+  return `${String(today).slice(0, 4)}-01-01`;
+}
 
 async function fetchSharesOutstanding(symbol) {
   const url  = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=defaultKeyStatistics,price`;
@@ -212,6 +214,7 @@ async function fetchEtfOHLCV(symbol) {
 }
 
 async function buildBootstrapSeries(today) {
+  const bootstrapStart = startOfYearIso(today);
   const allEtfs = [...new Set(ETF_FLOWS.flatMap(f => f.etfs))];
   const etfData = {};
   for (const sym of allEtfs) {
@@ -232,7 +235,7 @@ async function buildBootstrapSeries(today) {
     for (let i = 1; i < timestamps.length; i++) {
       if (closes[i] == null || volumes[i] == null || volumes[i] === 0) continue;
       const dateStr = new Date(timestamps[i] * 1000).toISOString().slice(0, 10);
-      if (dateStr < BOOTSTRAP_START || dateStr >= today) continue;
+      if (dateStr < bootstrapStart || dateStr >= today) continue;
       const prev = closes[i - 1];
       if (prev == null || prev === 0) continue;
       const dir = closes[i] >= prev ? 1 : -1;
@@ -263,8 +266,40 @@ async function buildBootstrapSeries(today) {
     }
     series.push({ date, flows });
   }
-  console.log(`  bootstrap: built ${series.length} entries (${sortedDates[0]} → ${sortedDates[sortedDates.length - 1]})`);
+  if (series.length) {
+    console.log(`  bootstrap: built ${series.length} entries (${sortedDates[0]} → ${sortedDates[sortedDates.length - 1]})`);
+  } else {
+    console.log(`  bootstrap: built 0 entries (${bootstrapStart} → ${today})`);
+  }
   return series;
+}
+
+function summarizeFlowSeries(series, today) {
+  const todayEntry = series.find((e) => e.date === today);
+
+  function sumSeriesFlows(key, daysAgo) {
+    const cutoff = new Date(Date.now() - daysAgo * 86400_000).toISOString().slice(0, 10);
+    let total = 0, hasData = false;
+    for (const e of series) {
+      if (e.date <= cutoff || e.date > today) continue;
+      const f = e.flows?.[key];
+      if (f != null) { total += f; hasData = true; }
+    }
+    return hasData ? total * 1e9 : null; // raw USD
+  }
+
+  const summary = {};
+  for (const { key } of ETF_FLOWS) {
+    const todayFlowB = todayEntry?.flows?.[key];
+    summary[key] = {
+      daily: todayFlowB != null ? todayFlowB * 1e9 : null,
+      wow:   sumSeriesFlows(key, 7),
+      mom:   sumSeriesFlows(key, 30),
+      mo6:   sumSeriesFlows(key, 182),
+      yoy:   sumSeriesFlows(key, 365),
+    };
+  }
+  return summary;
 }
 
 async function fetchFlows(userData) {
@@ -279,7 +314,7 @@ async function fetchFlows(userData) {
   if (dailyFlows.bootstrapped && !dailyFlows.bootstrapVersion) dailyFlows.bootstrapVersion = 1;
 
   if ((dailyFlows.bootstrapVersion || 0) < BOOTSTRAP_VERSION) {
-    console.log(`  flows: bootstrapping 4 weeks of history (v${BOOTSTRAP_VERSION})…`);
+    console.log(`  flows: bootstrapping YTD history (v${BOOTSTRAP_VERSION})…`);
     try {
       const bootstrapSeries = await buildBootstrapSeries(today);
       if (bootstrapSeries.length) {
@@ -377,33 +412,7 @@ async function fetchFlows(userData) {
   dailyFlows.updatedAt = new Date().toISOString().replace(/\.\d+Z$/, "Z");
   fs.mkdirSync(path.dirname(dailyFlowsPath), { recursive: true });
   fs.writeFileSync(dailyFlowsPath, JSON.stringify(dailyFlows, null, 2) + "\n");
-
-  // ---- Compute summary for AI from accumulated series ----
-  function sumSeriesFlows(key, daysAgo) {
-    const cutoff = new Date(Date.now() - daysAgo * 86400_000).toISOString().slice(0, 10);
-    let total = 0, hasData = false;
-    for (const e of dailyFlows.series) {
-      if (e.date <= cutoff) continue;
-      const f = e.flows?.[key];
-      if (f != null) { total += f; hasData = true; }
-    }
-    return hasData ? total * 1e9 : null; // raw USD
-  }
-
-  const summary = {};
-  for (const { key, vehicle } of ETF_FLOWS) {
-    const todayFlowB = todayEntry.flows[key];
-    summary[key] = {
-      vehicle,
-      daily: todayFlowB != null ? todayFlowB * 1e9 : null,
-      wow:   sumSeriesFlows(key, 7),
-      mom:   sumSeriesFlows(key, 30),
-      mo6:   sumSeriesFlows(key, 182),
-      yoy:   sumSeriesFlows(key, 365),
-    };
-  }
-
-  return summary;
+  return summarizeFlowSeries(dailyFlows.series, today);
 }
 
 // ---------- fetch one asset (mirrors fetch_one in fetch_live.py) ----------
@@ -505,4 +514,4 @@ async function run({ historyPath, outPath }) {
   console.log(`\nWrote ${outPath} (${Object.keys(results).length} assets)`);
 }
 
-module.exports = { run };
+module.exports = { run, __test: { startOfYearIso, summarizeFlowSeries } };

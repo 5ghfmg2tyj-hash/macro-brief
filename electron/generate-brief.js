@@ -80,6 +80,26 @@ function fmtB(v) {
   return `${b >= 0 ? "+" : "−"}$${Math.abs(b).toFixed(2)}B`;
 }
 
+function buildFlowNote(df) {
+  if (!df) {
+    return "NOTE: Fund flow data was unavailable for this run. Show — only where data is unavailable.";
+  }
+
+  const rows = Object.values(df);
+  const hasDaily = rows.some((f) => f?.daily != null);
+  const hasHistorical = rows.some((f) => f?.wow != null || f?.mom != null || f?.mo6 != null || f?.yoy != null);
+
+  if (hasHistorical && !hasDaily) {
+    return "NOTE: Daily share-change flow is still initializing. Populate WoW, MoM, 6M, and YoY from year-to-date history where available.";
+  }
+
+  if (!hasHistorical && !hasDaily) {
+    return "NOTE: Fund flow history is unavailable for this run. Show — only where data is unavailable.";
+  }
+
+  return "";
+}
+
 function buildUserPrompt(liveJson, historyJson) {
   const now       = new Date();
   const weekDate  = now.toISOString().slice(0, 10);
@@ -107,10 +127,7 @@ function buildUserPrompt(liveJson, historyJson) {
     treas:   "IEF+TLT",    cash:    "SGOV+BIL",
   };
   const df = liveJson.dailyFlows;
-  const allNull = df && Object.values(df).every(f => f.daily == null && f.wow == null);
-  const flowNote = (!df || allNull)
-    ? "NOTE: Flow history is initializing — day 1 baseline stored today. Deltas will appear from day 2 onward. Show — for all numeric cells."
-    : "";
+  const flowNote = buildFlowNote(df);
   const flowRows = assets.map(a => {
     const f    = df?.[a.key];
     const veh  = VEHICLES[a.key] || "—";
