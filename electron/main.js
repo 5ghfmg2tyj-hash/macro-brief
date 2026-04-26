@@ -83,6 +83,19 @@ async function doBriefGeneration() {
   }
 
   const liveJson    = JSON.parse(fs.readFileSync(liveJsonPath, "utf8"));
+  if (!liveJson.dailyFlows) {
+    const dailyFlowsPath = path.join(app.getPath("userData"), "daily-flows.json");
+    try {
+      const dailyFlowData = JSON.parse(fs.readFileSync(dailyFlowsPath, "utf8"));
+      if (Array.isArray(dailyFlowData.series) && dailyFlowData.series.length) {
+        const latestDate = dailyFlowData.series[dailyFlowData.series.length - 1].date;
+        liveJson.dailyFlows = fetchLive.summarizeFlowSeries(dailyFlowData.series, latestDate);
+      }
+    } catch (err) {
+      console.warn("daily flow fallback unavailable:", err.message);
+    }
+  }
+
   const userHistPath   = path.join(USER_DOCS, "data", "history.json");
   const bundleHistPath = path.join(DOCS_ROOT, "data", "history.json");
   const historyJson    = JSON.parse(fs.readFileSync(

@@ -514,4 +514,4 @@ async function run({ historyPath, outPath }) {
   console.log(`\nWrote ${outPath} (${Object.keys(results).length} assets)`);
 }
 
-module.exports = { run, __test: { startOfYearIso, summarizeFlowSeries } };
+module.exports = { run, summarizeFlowSeries, __test: { startOfYearIso, summarizeFlowSeries } };
