@@ -30,4 +30,6 @@ test("five tabs are present (including Settings)", () => {
   expect(tabs.length).toBe(5);
   const tabNames = Array.from(tabs).map(t => t.dataset.tab);
   expect(tabNames).toContain("settings");
+  expect(tabNames).toContain("snapshot");
+  expect(tabNames).not.toContain("live");
 });

@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("macroBrief", {
   version:       require("../package.json").version,
   dailyFlowsUrl: "app-data://data/daily-flows.json",
   liveDataUrl: "app-data://data/live.json",
+  sharesHistoryUrl: "app-data://data/shares-history.json",
 
   onLiveUpdate:     (cb) => ipcRenderer.on("live-updated",    ()         => cb()),
   onBriefGenerated: (cb) => ipcRenderer.on("brief-generated", (_e, res)  => cb(res)),
@@ -23,5 +24,6 @@ contextBridge.exposeInMainWorld("macroBrief", {
     setLoginItem: (enable) => ipcRenderer.invoke("schedule:set-login-item", enable),
   },
 
+  refreshLiveData: () => ipcRenderer.invoke("live:refresh"),
   generateBrief: () => ipcRenderer.invoke("brief:generate"),
 });

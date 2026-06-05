@@ -217,6 +217,11 @@ ipcMain.handle("brief:generate", async () => {
   return result;
 });
 
+ipcMain.handle("live:refresh", async () => {
+  await runFetch();
+  return { ok: true };
+});
+
 // ---------- app lifecycle ----------
 
 app.whenReady().then(() => {

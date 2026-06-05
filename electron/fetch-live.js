@@ -193,8 +193,30 @@ async function fetchSharesOutstanding(symbol) {
   const r    = data?.quoteSummary?.result?.[0];
   const shares = r?.defaultKeyStatistics?.sharesOutstanding?.raw;
   const price  = r?.price?.regularMarketPrice?.raw;
-  if (shares == null || price == null) throw new Error("missing sharesOutstanding or price");
-  return { shares: Number(shares), price: Number(price) };
+  const marketCap = r?.price?.marketCap?.raw;
+
+  if (shares != null && price != null) {
+    return { shares: Number(shares), price: Number(price) };
+  }
+  if (marketCap != null && price != null && price !== 0) {
+    return { shares: Number(marketCap) / Number(price), price: Number(price) };
+  }
+
+  const fallbackUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}`;
+  const fallbackData = await (await _get(fallbackUrl)).json();
+  const q = fallbackData?.quoteResponse?.result?.[0];
+  const fallbackPrice = q?.regularMarketPrice;
+  const fallbackShares = q?.sharesOutstanding;
+  const fallbackMarketCap = q?.marketCap ?? q?.totalAssets;
+
+  if (fallbackShares != null && fallbackPrice != null) {
+    return { shares: Number(fallbackShares), price: Number(fallbackPrice) };
+  }
+  if (fallbackMarketCap != null && fallbackPrice != null && fallbackPrice !== 0) {
+    return { shares: Number(fallbackMarketCap) / Number(fallbackPrice), price: Number(fallbackPrice) };
+  }
+
+  throw new Error("missing sharesOutstanding/marketCap or price");
 }
 
 const FLOW_FRACTION = 0.05; // ~5% of ETF dollar volume ≈ net creation/redemption
@@ -276,9 +298,10 @@ async function buildBootstrapSeries(today) {
 
 function summarizeFlowSeries(series, today) {
   const todayEntry = series.find((e) => e.date === today);
+  const todayMs = new Date(today).getTime();
 
   function sumSeriesFlows(key, daysAgo) {
-    const cutoff = new Date(Date.now() - daysAgo * 86400_000).toISOString().slice(0, 10);
+    const cutoff = new Date(todayMs - daysAgo * 86400_000).toISOString().slice(0, 10);
     let total = 0, hasData = false;
     for (const e of series) {
       if (e.date <= cutoff || e.date > today) continue;

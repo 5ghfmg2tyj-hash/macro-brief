@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "macro-brief",
+  "pages_build_output_dir": "./docs",
+  "compatibility_date": "2026-06-04"
+}
