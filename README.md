@@ -95,6 +95,7 @@ Only the publisher machine needs them.
 
 - `wrangler.jsonc`
 - `.github/workflows/deploy-cloudflare-pages.yml`
+- `.github/workflows/publish-and-deploy.yml`
 
 ### GitHub secrets to add
 
@@ -103,8 +104,11 @@ Add these repository secrets in GitHub:
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_PAGES_PROJECT_NAME`
+- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
 
 The workflow deploys `docs/` to Cloudflare Pages on every push to `main`.
+The manual publish workflow can also generate fresh artifacts from secrets stored in GitHub.
 
 ### Minimal Cloudflare setup
 
@@ -113,6 +117,25 @@ The workflow deploys `docs/` to Cloudflare Pages on every push to `main`.
 3. Create the Pages project once in the dashboard
 4. Set `CLOUDFLARE_PAGES_PROJECT_NAME` to that exact Pages project name
 5. Push to `main` or run the GitHub Actions workflow manually
+
+### Manual publisher workflow
+
+You now have a manual GitHub Actions workflow named `Publish Artifacts And Deploy`.
+
+Use it when you want GitHub to:
+
+1. fetch fresh market data
+2. optionally generate a new brief
+3. commit updated `docs/` artifacts back to `main`
+4. deploy the updated `docs/` folder to Cloudflare Pages
+
+Workflow inputs:
+
+- `provider`: `anthropic` or `openai`
+- `model`: optional model override
+- `skip_brief`: if `true`, only refresh data and skip AI brief generation
+
+If you primarily want GitHub to act as the publisher, this is the easiest operating path.
 
 ### Optional local deployment
 
