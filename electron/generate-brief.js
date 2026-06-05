@@ -10,6 +10,32 @@ const TIMEOUT_MS    = 120_000; // AI calls can take a while
 const MAX_RETRIES   = 3;
 const RETRYABLE     = new Set([429, 500, 503, 529]); // overloaded / rate-limited / transient
 
+function summarizeApiErrorBody(text) {
+  const trimmed = String(text || "").trim();
+  if (!trimmed) return "";
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    const msg = parsed?.error?.message || parsed?.message;
+    if (msg) return String(msg).replace(/\s+/g, " ").trim();
+  } catch {}
+
+  return trimmed.replace(/\s+/g, " ").trim().slice(0, 240);
+}
+
+function formatApiError(providerLabel, status, text) {
+  const detail = summarizeApiErrorBody(text);
+  return detail ? `${providerLabel} API ${status}: ${detail}` : `${providerLabel} API ${status}`;
+}
+
+function buildRetryFailureMessage(label, lastErr) {
+  const attempts = MAX_RETRIES + 1;
+  const detail = lastErr?.message
+    ? lastErr.message.replace(/ — retrying…$/, "")
+    : `${label} kept returning retryable errors.`;
+  return `${label} request failed after ${attempts} attempts. ${detail} Please wait a few minutes and try again.`;
+}
+
 // Retry with exponential backoff. attemptFn must throw err with err.retryable=true to trigger a retry.
 async function withRetry(attemptFn, label, onStatus) {
   let lastErr;
@@ -25,7 +51,7 @@ async function withRetry(attemptFn, label, onStatus) {
     try   { return await attemptFn(); }
     catch (e) { lastErr = e; if (!e.retryable) throw e; }
   }
-  const finalErr = new Error(`${label} servers are overloaded. Tried ${MAX_RETRIES} times. Please wait a few minutes and try again.`);
+  const finalErr = new Error(buildRetryFailureMessage(label, lastErr));
   finalErr.cause = lastErr;
   throw finalErr;
 }
@@ -38,17 +64,7 @@ const VALID_SCORES = new Set([-1, -0.5, 0, 0.5, 1]);
 
 const SYSTEM_PROMPT = `You are a macro investment analyst. Given live market data and recent allocation history, produce a comprehensive weekly macro brief and updated allocation recommendations.
 
-The brief markdown should include:
-1. Money Flow Snapshot — MANDATORY: produce a markdown table showing net fund flows into/out of each asset class. EXACTLY these 7 columns:
-   | Asset Class | Vehicle | Daily Flow | WoW | MoM | 6M | YoY |
-   - All values in $B (billions). Positive = inflows, negative = outflows.
-   - Format: "+$1.5B", "−$2.3B", or "—" if data is unavailable.
-   - "Daily Flow" = today's estimated flow; WoW = past ~7 days; MoM = past ~30 days; 6M = past ~180 days; YoY = past ~365 days.
-   - Include ALL 11 asset classes. For Commodities and Cash, show "—" for any columns without data.
-   - Cash row: vehicle is SGOV+BIL (T-bill ETF proxy — directional signal, not the full MMF universe). Show flow data normally.
-   - Commodities row: all "—" (no ETF proxy).
-   - Use EXACTLY the vehicle names provided in the user prompt. Do not rename or add alternatives.
-   - This section is about WHERE MONEY IS FLOWING, not price levels.
+The app itself renders the Money Flow Snapshot table from structured data, so your markdown brief should begin at section 2 and include:
 2. Macro Cycle Assessment — 2–3 paragraphs on the macro regime
 3. Key Signals This Week — bulleted highlights of the most important moves
 4. Allocation Recommendations — one paragraph per asset class with rationale
@@ -80,6 +96,106 @@ function fmtB(v) {
   return `${b >= 0 ? "+" : "−"}$${Math.abs(b).toFixed(2)}B`;
 }
 
+const FLOW_ROWS = [
+  { key: "usLarge",  label: "US Large Cap",            vehicle: "SPY+IVV+VOO" },
+  { key: "usSmid",   label: "US Small/Mid Cap",        vehicle: "IWM" },
+  { key: "intlDev",  label: "International Dev",       vehicle: "EFA" },
+  { key: "em",       label: "Emerging Markets",        vehicle: "EEM" },
+  { key: "gold",     label: "Gold",                    vehicle: "GLD" },
+  { key: "commod",   label: "Commodities (Oil/Cu)",    vehicle: "—" },
+  { key: "bitcoin",  label: "Bitcoin / Crypto",        vehicle: "IBIT+FBTC" },
+  { key: "ig",       label: "IG Bonds",                vehicle: "LQD" },
+  { key: "hy",       label: "High Yield Bonds",        vehicle: "HYG+JNK" },
+  { key: "treas",    label: "Intermediate Treasuries", vehicle: "IEF+TLT" },
+  { key: "cash",     label: "Cash / Short Duration",   vehicle: "SGOV+BIL" },
+];
+
+function sumDefined(values) {
+  let total = 0, hasData = false;
+  for (const v of values) {
+    if (v == null) continue;
+    total += v;
+    hasData = true;
+  }
+  return hasData ? total : null;
+}
+
+function buildFlowNote(df) {
+  if (!df) {
+    return "NOTE: Fund flow data was unavailable for this run. Show — only where data is unavailable.";
+  }
+
+  const rows = Object.values(df);
+  const hasDaily = rows.some((f) => f?.daily != null);
+  const hasHistorical = rows.some((f) => f?.wow != null || f?.mom != null || f?.mo6 != null || f?.yoy != null);
+
+  if (hasHistorical && !hasDaily) {
+    return "NOTE: Daily share-change flow is still initializing. Populate WoW, MoM, 6M, and YoY from year-to-date history where available.";
+  }
+
+  if (!hasHistorical && !hasDaily) {
+    return "NOTE: Fund flow history is unavailable for this run. Show — only where data is unavailable.";
+  }
+
+  return "";
+}
+
+function renderMoneyFlowSnapshot(df) {
+  const note = buildFlowNote(df);
+
+  const lines = [
+    "## Money Flow Snapshot",
+    "",
+  ];
+
+  if (note) {
+    lines.push(note, "");
+  }
+
+  lines.push(
+    "| Asset Class | Vehicle | Daily Flow | WoW | MoM | 6M | YoY |",
+    "|---|---|---|---|---|---|---|"
+  );
+
+  for (const row of FLOW_ROWS) {
+    const f = df?.[row.key];
+    lines.push(`| ${row.label} | ${row.vehicle} | ${fmtB(f?.daily ?? null)} | ${fmtB(f?.wow ?? null)} | ${fmtB(f?.mom ?? null)} | ${fmtB(f?.mo6 ?? null)} | ${fmtB(f?.yoy ?? null)} |`);
+  }
+
+  const total = {
+    daily: sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.daily ?? null)),
+    wow:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.wow ?? null)),
+    mom:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mom ?? null)),
+    mo6:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mo6 ?? null)),
+    yoy:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.yoy ?? null)),
+  };
+
+  lines.push(`| **Total** | — | **${fmtB(total.daily)}** | **${fmtB(total.wow)}** | **${fmtB(total.mom)}** | **${fmtB(total.mo6)}** | **${fmtB(total.yoy)}** |`);
+
+  return lines.join("\n");
+}
+
+function stripLeadingSnapshotSection(markdown) {
+  if (!markdown) return "";
+  const patterns = [
+    /^##\s+Money Flow Snapshot[\s\S]*?(?=^##\s|\Z)/m,
+    /^##\s+1\.\s+Market Snapshot[\s\S]*?(?=^##\s|\Z)/m,
+    /^##\s+Market Snapshot[\s\S]*?(?=^##\s|\Z)/m,
+  ];
+
+  let out = markdown.trim();
+  for (const pattern of patterns) {
+    out = out.replace(pattern, "").trim();
+  }
+  return out;
+}
+
+function mergeBriefWithSnapshot(markdown, df) {
+  const snapshot = renderMoneyFlowSnapshot(df);
+  const remainder = stripLeadingSnapshotSection(markdown);
+  return remainder ? `${snapshot}\n\n${remainder}` : snapshot;
+}
+
 function buildUserPrompt(liveJson, historyJson) {
   const now       = new Date();
   const weekDate  = now.toISOString().slice(0, 10);
@@ -107,16 +223,21 @@ function buildUserPrompt(liveJson, historyJson) {
     treas:   "IEF+TLT",    cash:    "SGOV+BIL",
   };
   const df = liveJson.dailyFlows;
-  const allNull = df && Object.values(df).every(f => f.daily == null && f.wow == null);
-  const flowNote = (!df || allNull)
-    ? "NOTE: Flow history is initializing — day 1 baseline stored today. Deltas will appear from day 2 onward. Show — for all numeric cells."
-    : "";
+  const flowNote = buildFlowNote(df);
   const flowRows = assets.map(a => {
     const f    = df?.[a.key];
     const veh  = VEHICLES[a.key] || "—";
     if (!f || (a.key === "commod")) return `  ${a.label} | vehicle=${veh} | daily=— | wow=— | mom=— | mo6=— | yoy=—`;
     return `  ${a.label} | vehicle=${veh} | daily=${fmtB(f.daily)} | wow=${fmtB(f.wow)} | mom=${fmtB(f.mom)} | mo6=${fmtB(f.mo6)} | yoy=${fmtB(f.yoy)}`;
   }).join("\n");
+
+  const totalRow = {
+    daily: sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.daily ?? null)),
+    wow:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.wow ?? null)),
+    mom:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mom ?? null)),
+    mo6:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mo6 ?? null)),
+    yoy:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.yoy ?? null)),
+  };
 
   const nWeeks = (historyJson.weeks || []).length;
   const start  = Math.max(0, nWeeks - 4);
@@ -138,6 +259,7 @@ FUND FLOW DATA — use this for the Money Flow Snapshot table (fetched ${liveJso
 ${flowNote}
 CRITICAL: Use the EXACT vehicle names from this data. Do NOT substitute, rename, or add alternatives (e.g. use "IWM" not "IWM/IJR", "GLD" not "GLD/IAU").
 ${flowRows}
+  Total | vehicle=— | daily=${fmtB(totalRow.daily)} | wow=${fmtB(totalRow.wow)} | mom=${fmtB(totalRow.mom)} | mo6=${fmtB(totalRow.mo6)} | yoy=${fmtB(totalRow.yoy)}
 
 MARKET PRICE CONTEXT — use for Macro Cycle Assessment / Key Signals / Allocation Recommendations:
 ${liveRows}
@@ -146,8 +268,8 @@ RECENT ALLOCATION HISTORY (last ${recentWeeks.length} week${recentWeeks.length !
 ${allocRows}
 
 Generate the full weekly macro brief and return the updated allocation scores.
-IMPORTANT: Section 1 heading must be "## Money Flow Snapshot" — not "Market Snapshot" or any other title.
-IMPORTANT: Section 1 table must have EXACTLY 7 columns (Asset Class | Vehicle | Daily Flow | WoW | MoM | 6M | YoY) showing fund flows in $B, not prices.`;
+IMPORTANT: Do not include a Money Flow Snapshot or Market Snapshot section in your markdown. The app will render the structured flow table itself.
+IMPORTANT: Start your markdown at section 2, using headings like "## Macro Cycle Assessment", "## Key Signals This Week", "## Allocation Recommendations", and "## Risk Factors to Watch".`;
 }
 
 // ---------- Anthropic ----------
@@ -202,11 +324,8 @@ async function callAnthropic(liveJson, historyJson, model, apiKey, onStatus) {
 
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
-      const err = new Error(
-        RETRYABLE.has(resp.status)
-          ? `Anthropic servers busy (${resp.status}) — retrying…`
-          : `Anthropic API ${resp.status}: ${txt}`
-      );
+      const detail = formatApiError("Anthropic", resp.status, txt);
+      const err = new Error(RETRYABLE.has(resp.status) ? `${detail} — retrying…` : detail);
       err.retryable = RETRYABLE.has(resp.status);
       throw err;
     }
@@ -272,11 +391,8 @@ async function callOpenAI(liveJson, historyJson, model, apiKey, onStatus) {
 
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
-      const err = new Error(
-        RETRYABLE.has(resp.status)
-          ? `OpenAI servers busy (${resp.status}) — retrying…`
-          : `OpenAI API ${resp.status}: ${txt}`
-      );
+      const detail = formatApiError("OpenAI", resp.status, txt);
+      const err = new Error(RETRYABLE.has(resp.status) ? `${detail} — retrying…` : detail);
       err.retryable = RETRYABLE.has(resp.status);
       throw err;
     }
@@ -298,7 +414,7 @@ function writeBriefFile(userDocsRoot, slug, markdown) {
   fs.writeFileSync(path.join(briefsDir, `${slug}.md`), markdown, "utf8");
 }
 
-function updateBriefIndex(userDocsRoot, docsRoot, slug, title, date) {
+function updateBriefIndex(userDocsRoot, docsRoot, slug, title, date, generatedAt) {
   const userPath   = path.join(userDocsRoot, "briefs", "index.json");
   const bundlePath = path.join(docsRoot,     "briefs", "index.json");
   let index = { briefs: [] };
@@ -307,7 +423,7 @@ function updateBriefIndex(userDocsRoot, docsRoot, slug, title, date) {
 
   const note = index._note;
   const list = (index.briefs || []).filter(b => b.slug !== slug);
-  list.unshift({ slug, title, date });
+  list.unshift({ slug, title, date, generatedAt });
   const out = note ? { _note: note, briefs: list } : { briefs: list };
   fs.mkdirSync(path.join(userDocsRoot, "briefs"), { recursive: true });
   fs.writeFileSync(userPath, JSON.stringify(out, null, 2) + "\n", "utf8");
@@ -371,14 +487,27 @@ async function generate({ docsRoot, userDocsRoot, liveJson, historyJson, provide
   }
 
   const slug  = weekDate.slice(0, 10);
+  const generatedAt = new Date().toISOString().replace(/\.\d+Z$/, "Z");
   const title = `Weekly Macro Brief — ${new Date(weekDate + "T12:00:00Z")
     .toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
 
-  writeBriefFile(userDocsRoot, slug, brief);
-  updateBriefIndex(userDocsRoot, docsRoot, slug, title, slug);
+  const mergedBrief = mergeBriefWithSnapshot(brief, liveJson.dailyFlows);
+
+  writeBriefFile(userDocsRoot, slug, mergedBrief);
+  updateBriefIndex(userDocsRoot, docsRoot, slug, title, slug, generatedAt);
   updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations);
 
-  return { slug, title, date: slug };
+  return { slug, title, date: slug, generatedAt };
 }
 
-module.exports = { generate };
+module.exports = {
+  generate,
+  __test: {
+    buildRetryFailureMessage,
+    formatApiError,
+    mergeBriefWithSnapshot,
+    renderMoneyFlowSnapshot,
+    stripLeadingSnapshotSection,
+    summarizeApiErrorBody,
+  },
+};

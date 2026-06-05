@@ -262,6 +262,35 @@ svg#chart { display: block; width: 100%; height: auto; }
 .live-card.err { border-color: #7f1d1d; }
 .live-card.err .live-val { color: var(--bad); font-size: 13px; font-weight: 500; }
 
+/* ============ FLOW SNAPSHOT ============ */
+.snapshot-note {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.snapshot-table-wrap {
+  overflow-x: auto;
+}
+.snapshot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.snapshot-table th,
+.snapshot-table td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.snapshot-table th {
+  background: #0b1220;
+  white-space: nowrap;
+}
+.snapshot-total td {
+  background: rgba(148, 163, 184, 0.08);
+}
+
 /* ============ BRIEF ============ */
 .brief-body {
   font-size: 14px;
@@ -330,6 +359,8 @@ svg#chart { display: block; width: 100%; height: auto; }
 }
 .generate-status.error { color: var(--bad); }
 .generate-status.ok    { color: var(--ok); }
+#flow-refresh-status.error { color: var(--bad); }
+#flow-refresh-status.ok    { color: var(--ok); }
 
 .spinner {
   width: 14px; height: 14px;

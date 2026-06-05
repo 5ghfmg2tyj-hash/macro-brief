@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Macro Brief — Allocation Tracker</title>
-<meta name="description" content="Weekly macro allocation calls with interactive Tilt/Flows chart and live market data."/>
+<meta name="description" content="Weekly macro allocation calls with interactive history, published flow snapshots, and a shared brief viewer."/>
 <meta name="theme-color" content="#0b1220"/>
 <meta name="color-scheme" content="dark"/>
 <link rel="stylesheet" href="styles.css"/>
@@ -22,7 +22,7 @@
     </div>
     <nav class="tabs" role="tablist">
       <button class="tab active" data-tab="chart"    role="tab">Chart</button>
-      <button class="tab"        data-tab="live"     role="tab">Live data</button>
+      <button class="tab"        data-tab="snapshot" role="tab">Money flows</button>
       <button class="tab"        data-tab="brief"    role="tab">This week's brief</button>
       <button class="tab"        data-tab="about"    role="tab">About</button>
       <button class="tab"        data-tab="settings" role="tab">Settings</button>
@@ -62,33 +62,33 @@
     </div>
   </section>
 
-  <!-- ========= LIVE TAB ========= -->
-  <section class="tab-panel" id="tab-live" role="tabpanel">
+  <!-- ========= SNAPSHOT TAB ========= -->
+  <section class="tab-panel" id="tab-snapshot" role="tabpanel">
     <div class="panel panel-head">
-      <h1>Live market data</h1>
+      <h1>Money Flow Snapshot</h1>
       <div class="subtitle">
-        Latest available levels fetched directly from Yahoo Finance, FRED, and CoinGecko.
-        Refreshed automatically every 30 minutes while the app is open.
-        Last refresh: <span id="live-ts">—</span>
+        Daily ETF flow estimates with rolling WoW, MoM, 6M, and YoY totals.
+        Published by the owner account and available to approved viewers.
+        Last refresh: <span id="flow-ts">—</span>
       </div>
       <div style="margin-top:12px;">
-        <button class="btn" id="refresh-live">Reload</button>
-        <span class="muted" style="margin-left:10px; font-size:12px;" id="live-status"></span>
+        <button class="btn" id="refresh-current-data">Refresh</button>
+        <span class="muted" style="margin-left:10px; font-size:12px;" id="flow-refresh-status"></span>
       </div>
     </div>
 
     <div class="panel">
-      <div class="live-grid" id="live-grid">
-        <div class="muted" style="grid-column: 1/-1;">Loading…</div>
+      <div id="flow-snapshot" class="snapshot-wrap">
+        <div class="muted">Loading…</div>
       </div>
     </div>
 
     <div class="panel">
       <div class="section-label">Notes</div>
       <ul class="notes">
-        <li>FRED series update once per business day (~4pm ET); intraday quotes come from Yahoo Finance / CoinGecko.</li>
-        <li>OAS spreads (IG, HY) are in basis points — FRED reports them in percent and the app auto-scales.</li>
-        <li>The <strong>Reload</strong> button re-reads the last fetched data. A new network fetch happens automatically every 30 minutes.</li>
+        <li>Daily flow is estimated from ETF shares-outstanding changes multiplied by price.</li>
+        <li>WoW, MoM, 6M, and YoY columns are rolling sums built from the cached daily flow series.</li>
+        <li>The <strong>Refresh</strong> button pulls fresh market data immediately instead of waiting for the next automatic refresh.</li>
       </ul>
     </div>
   </section>
@@ -98,7 +98,7 @@
     <div class="panel panel-head">
       <h1 id="brief-title">This week's brief</h1>
       <div class="subtitle" id="brief-sub">Loading latest brief…</div>
-      <div style="margin-top:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div data-desktop-only style="margin-top:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
         <button class="btn btn-generate" id="generate-brief-btn">Generate new brief</button>
         <span class="generate-status" id="generate-status"></span>
       </div>
@@ -118,12 +118,12 @@
   <section class="tab-panel" id="tab-about" role="tabpanel">
     <div class="panel panel-head">
       <h1>About this app</h1>
-      <div class="subtitle">Native macOS app that renders the weekly macro brief's allocation history, live market data, and the full text of each week's note.</div>
+      <div class="subtitle">Shared viewer for published macro briefs, allocation history, and money flow snapshots.</div>
     </div>
 
     <div class="panel">
       <h3>How it works</h3>
-      <p>Live market data is fetched automatically every 30 minutes from Yahoo Finance, FRED, and CoinGecko. Click <strong>Generate new brief</strong> on the Brief tab to produce a fresh analysis using your configured AI provider.</p>
+      <p>The published site is read-only for viewers. A trusted publisher account fetches market data, generates the brief with its own API key, and updates the site artifacts for everyone else to read.</p>
       <h3>Data sources</h3>
       <p>Bundled JSON for historical tilts and flows. Live quotes are fetched directly by the app from:</p>
       <ul class="notes">
@@ -135,7 +135,7 @@
       <h3>Flow data</h3>
       <p>ETF and MMF flow figures come from published weekly reports (ICI, ETF.com, VettaFi). They are committed to <code>flows.json</code> each week.</p>
       <h3>Source</h3>
-      <p>Code lives on GitHub. PRs welcome.</p>
+      <p>Code lives on GitHub. The recommended deployment path is Cloudflare Pages protected by Cloudflare Access.</p>
     </div>
   </section>
 
@@ -235,7 +235,7 @@
 </main>
 
 <footer class="page-footer">
-  <span class="muted">Native macOS app · no backend, no tracking · <span id="app-version">v1.2.5</span></span>
+  <span class="muted">Shared viewer · published artifacts only · <span id="app-version">v1.3.0</span></span>
 </footer>
 
 <script src="live.js"></script>

@@ -4,6 +4,19 @@ const { app, safeStorage } = require("electron");
 const fs   = require("fs");
 const path = require("path");
 
+const ALLOWED_ANTHROPIC_MODELS = new Set([
+  "claude-opus-4-7",
+  "claude-sonnet-4-6",
+  "claude-haiku-4-5-20251001",
+]);
+
+const ALLOWED_OPENAI_MODELS = new Set([
+  "gpt-4o",
+  "gpt-4o-mini",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+]);
+
 function settingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
 }
@@ -17,8 +30,16 @@ function save(data) {
   fs.writeFileSync(settingsPath(), JSON.stringify(data, null, 2) + "\n", "utf8");
 }
 
+function normalizeSettings(s) {
+  const out = { ...s };
+  if (!ALLOWED_ANTHROPIC_MODELS.has(out.anthropic_model)) out.anthropic_model = "claude-opus-4-7";
+  if (!ALLOWED_OPENAI_MODELS.has(out.openai_model)) out.openai_model = "gpt-4o";
+  if (out.provider !== "anthropic" && out.provider !== "openai") out.provider = "anthropic";
+  return out;
+}
+
 function getSettings() {
-  const s = load();
+  const s = normalizeSettings(load());
   return {
     // AI provider
     provider:        s.provider        || "anthropic",
@@ -35,7 +56,7 @@ function getSettings() {
 }
 
 function setSettings(updates) {
-  const s = load();
+  const s = normalizeSettings(load());
   const allowed = [
     "provider", "anthropic_model", "openai_model",
     "auto_generate", "auto_day", "auto_hour", "last_auto_gen_window",
@@ -43,7 +64,7 @@ function setSettings(updates) {
   for (const k of allowed) {
     if (updates[k] !== undefined) s[k] = updates[k];
   }
-  save(s);
+  save(normalizeSettings(s));
   return getSettings();
 }
 

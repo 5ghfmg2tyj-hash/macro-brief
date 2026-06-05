@@ -3,16 +3,32 @@
 // ==============================================================================
 
 (function () {
+  const isElectron = !!window.macroBrief?.isElectron;
   const vEl = document.getElementById("app-version");
   if (vEl && window.macroBrief?.version) vEl.textContent = `v${window.macroBrief.version}`;
 
   const state = {
-    history:    null,
-    flows:      null,
-    dailyFlows: null,
-    briefs:     null,  // { briefs: [{ slug, title, date }...] }
-    liveLoaded: false
+    history:       null,
+    flows:         null,
+    dailyFlows:    null,
+    live:          null,
+    sharesHistory: null,
+    briefs:        null,  // { briefs: [{ slug, title, date }...] }
   };
+
+  const FLOW_ROWS = [
+    { key: "usLarge",  label: "US Large Cap",            vehicle: "SPY+IVV+VOO", etfs: ["SPY", "IVV", "VOO"] },
+    { key: "usSmid",   label: "US Small/Mid Cap",        vehicle: "IWM",         etfs: ["IWM"] },
+    { key: "intlDev",  label: "International Dev",       vehicle: "EFA",         etfs: ["EFA"] },
+    { key: "em",       label: "Emerging Markets",        vehicle: "EEM",         etfs: ["EEM"] },
+    { key: "gold",     label: "Gold",                    vehicle: "GLD",         etfs: ["GLD"] },
+    { key: "commod",   label: "Commodities (Oil/Cu)",    vehicle: "—",           etfs: [] },
+    { key: "bitcoin",  label: "Bitcoin / Crypto",        vehicle: "IBIT+FBTC",   etfs: ["IBIT", "FBTC"] },
+    { key: "ig",       label: "IG Bonds",                vehicle: "LQD",         etfs: ["LQD"] },
+    { key: "hy",       label: "High Yield Bonds",        vehicle: "HYG+JNK",     etfs: ["HYG", "JNK"] },
+    { key: "treas",    label: "Intermediate Treasuries", vehicle: "IEF+TLT",     etfs: ["IEF", "TLT"] },
+    { key: "cash",     label: "Cash / Short Duration",   vehicle: "SGOV+BIL",    etfs: ["SGOV", "BIL"] },
+  ];
 
   // ---------- tabs ----------
   function initTabs() {
@@ -24,8 +40,6 @@
         tabs.forEach(x => x.classList.toggle("active", x === t));
         panels.forEach(p => p.classList.toggle("active", p.id === `tab-${key}`));
 
-        // lazy-load live data on first visit
-        if (key === "live" && !state.liveLoaded) refreshLive();
       });
     });
   }
@@ -38,23 +52,48 @@
   }
 
   async function loadDailyFlows() {
-    const url = window.macroBrief?.dailyFlowsUrl;
-    if (!url) return null;
+    const url = window.macroBrief?.dailyFlowsUrl || "data/daily-flows.json";
     try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? r.json() : null; }
     catch { return null; }
   }
 
+  async function loadLiveData() {
+    try { return await window.Live.load(); }
+    catch { return null; }
+  }
+
+  async function loadSharesHistory() {
+    const url = window.macroBrief?.sharesHistoryUrl || "data/shares-history.json";
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      return r.ok ? r.json() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function reloadRuntimeData() {
+    const [dailyFlows, live, sharesHistory] = await Promise.all([
+      loadDailyFlows(),
+      loadLiveData(),
+      loadSharesHistory(),
+    ]);
+    state.dailyFlows = dailyFlows;
+    state.live = live;
+    state.sharesHistory = sharesHistory;
+  }
+
   async function loadAll() {
     try {
-      const [history, flows, dailyFlows] = await Promise.all([
+      const [history, flows] = await Promise.all([
         loadJSON("data/history.json"),
         loadJSON("data/flows.json"),
-        loadDailyFlows(),
       ]);
       state.history    = history;
       state.flows      = flows;
-      state.dailyFlows = dailyFlows;
-      window.Chart.init({ history, flows, dailyFlows });
+      await reloadRuntimeData();
+      window.Chart.init({ history, flows, dailyFlows: state.dailyFlows });
+      renderFlowSnapshot();
     } catch (e) {
       document.getElementById("subtitle").textContent =
         "Failed to load data: " + e.message;
@@ -70,85 +109,234 @@
     }
   }
 
-  // ---------- live data ----------
-  async function refreshLive() {
-    if (!state.history) return;
-    state.liveLoaded = true;
-    const grid = document.getElementById("live-grid");
-    const status = document.getElementById("live-status");
-    const btn = document.getElementById("refresh-live");
+  // ---------- flow snapshot ----------
+  function sumDefined(values) {
+    let total = 0, hasData = false;
+    for (const v of values) {
+      if (v == null) continue;
+      total += v;
+      hasData = true;
+    }
+    return hasData ? total : null;
+  }
+
+  function fmtFlow(v) {
+    if (v == null) return "—";
+    const b = v / 1e9;
+    return `${b >= 0 ? "+" : "−"}${Math.abs(b).toFixed(2)}B`;
+  }
+
+  function fmtTotal(v) {
+    if (v == null) return "—";
+    return `${(v / 1e9).toFixed(2)}B`;
+  }
+
+  function summarizeDailyFlowSeries(series, today) {
+    const todayEntry = series.find((e) => e.date === today);
+    const todayMs = new Date(today).getTime();
+
+    function sumSeriesFlows(key, daysAgo) {
+      const cutoff = new Date(todayMs - daysAgo * 86400_000).toISOString().slice(0, 10);
+      let total = 0, hasData = false;
+      for (const e of series) {
+        if (e.date <= cutoff || e.date > today) continue;
+        const f = e.flows?.[key];
+        if (f != null) {
+          total += f;
+          hasData = true;
+        }
+      }
+      return hasData ? total * 1e9 : null;
+    }
+
+    const summary = {};
+    for (const row of FLOW_ROWS) {
+      if (row.key === "commod") {
+        summary[row.key] = { daily: null, wow: null, mom: null, mo6: null, yoy: null };
+        continue;
+      }
+      const todayFlowB = todayEntry?.flows?.[row.key];
+      summary[row.key] = {
+        daily: todayFlowB != null ? todayFlowB * 1e9 : null,
+        wow:   sumSeriesFlows(row.key, 7),
+        mom:   sumSeriesFlows(row.key, 30),
+        mo6:   sumSeriesFlows(row.key, 182),
+        yoy:   sumSeriesFlows(row.key, 365),
+      };
+    }
+    return summary;
+  }
+
+  function summarizeShareTotals(sharesHistory) {
+    if (!sharesHistory || typeof sharesHistory !== "object") return null;
+
+    function pickEntries(entries) {
+      if (!Array.isArray(entries) || !entries.length) return { current: null, previous: null };
+      const sorted = [...entries].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      return {
+        current: sorted[sorted.length - 1] || null,
+        previous: sorted.length > 1 ? sorted[sorted.length - 2] : null,
+      };
+    }
+
+    const summary = {};
+    for (const row of FLOW_ROWS) {
+      if (!row.etfs.length) {
+        summary[row.key] = { currentTotal: null, previousTotal: null };
+        continue;
+      }
+
+      let currentTotal = 0, previousTotal = 0;
+      let hasCurrent = false, hasPrevious = false;
+      for (const sym of row.etfs) {
+        const { current, previous } = pickEntries(sharesHistory[sym]);
+        if (current?.shares != null && current?.price != null) {
+          currentTotal += current.shares * current.price;
+          hasCurrent = true;
+        }
+        if (previous?.shares != null && previous?.price != null) {
+          previousTotal += previous.shares * previous.price;
+          hasPrevious = true;
+        }
+      }
+
+      summary[row.key] = {
+        currentTotal: hasCurrent ? currentTotal : null,
+        previousTotal: hasPrevious ? previousTotal : null,
+      };
+    }
+
+    return summary;
+  }
+
+  function buildFlowNote(summary) {
+    if (!summary) {
+      return "Fund flow data is unavailable right now.";
+    }
+
+    const rows = Object.values(summary);
+    const hasDaily = rows.some((f) => f?.daily != null);
+    const hasHistorical = rows.some((f) => f?.wow != null || f?.mom != null || f?.mo6 != null || f?.yoy != null);
+
+    if (hasHistorical && !hasDaily) {
+      return "Daily share-change flow is still initializing. Historical windows are available from the cached flow series.";
+    }
+
+    if (!hasHistorical && !hasDaily) {
+      return "Fund flow history is unavailable right now.";
+    }
+
+    return "";
+  }
+
+  function renderFlowSnapshot() {
+    const wrap = document.getElementById("flow-snapshot");
+    const tsEl = document.getElementById("flow-ts");
+    if (!wrap || !tsEl) return;
+
+    const series = state.dailyFlows?.series;
+    const latestDate = Array.isArray(series) && series.length ? series[series.length - 1].date : null;
+    const summary = latestDate ? summarizeDailyFlowSeries(series, latestDate) : null;
+    const totalsByRow = summarizeShareTotals(state.sharesHistory);
+    const note = buildFlowNote(summary);
+    const total = summary ? {
+      currentTotal: sumDefined(FLOW_ROWS.map((r) => totalsByRow?.[r.key]?.currentTotal ?? null)),
+      previousTotal: sumDefined(FLOW_ROWS.map((r) => totalsByRow?.[r.key]?.previousTotal ?? null)),
+      daily: sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.daily ?? null)),
+      wow:   sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.wow ?? null)),
+      mom:   sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.mom ?? null)),
+      mo6:   sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.mo6 ?? null)),
+      yoy:   sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.yoy ?? null)),
+    } : null;
+
+    const updatedAt = state.dailyFlows?.updatedAt || state.live?.fetchedAt || null;
+    const updatedTs = updatedAt ? new Date(updatedAt) : null;
+    tsEl.textContent = updatedTs && !isNaN(updatedTs) ? updatedTs.toLocaleString() : "—";
+
+    if (!summary) {
+      wrap.innerHTML = '<div class="muted">No flow data is available yet.</div>';
+      return;
+    }
+
+    wrap.innerHTML = `
+      ${note ? `<div class="snapshot-note">${note}</div>` : ""}
+      <div class="snapshot-table-wrap">
+        <table class="snapshot-table">
+          <thead>
+            <tr>
+              <th>Asset Class</th>
+              <th>Vehicle</th>
+              <th>Current Total</th>
+              <th>Yesterday Total</th>
+              <th>DoD</th>
+              <th>WoW</th>
+              <th>MoM</th>
+              <th>6M</th>
+              <th>YoY</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${FLOW_ROWS.map((row) => {
+              const flow = summary[row.key] || {};
+              const totals = totalsByRow?.[row.key] || {};
+              return `<tr>
+                <td>${row.label}</td>
+                <td>${row.vehicle}</td>
+                <td>${fmtTotal(totals.currentTotal)}</td>
+                <td>${fmtTotal(totals.previousTotal)}</td>
+                <td>${fmtFlow(flow.daily)}</td>
+                <td>${fmtFlow(flow.wow)}</td>
+                <td>${fmtFlow(flow.mom)}</td>
+                <td>${fmtFlow(flow.mo6)}</td>
+                <td>${fmtFlow(flow.yoy)}</td>
+              </tr>`;
+            }).join("")}
+            <tr class="snapshot-total">
+              <td><strong>Total</strong></td>
+              <td>—</td>
+              <td><strong>${fmtTotal(total.currentTotal)}</strong></td>
+              <td><strong>${fmtTotal(total.previousTotal)}</strong></td>
+              <td><strong>${fmtFlow(total.daily)}</strong></td>
+              <td><strong>${fmtFlow(total.wow)}</strong></td>
+              <td><strong>${fmtFlow(total.mom)}</strong></td>
+              <td><strong>${fmtFlow(total.mo6)}</strong></td>
+              <td><strong>${fmtFlow(total.yoy)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  async function refreshCurrentData() {
+    const btn = document.getElementById("refresh-current-data");
+    const status = document.getElementById("flow-refresh-status");
+    if (!btn || !status) return;
+
     btn.disabled = true;
-    status.textContent = "Loading…";
+    status.textContent = "Refreshing…";
+    status.classList.remove("error", "ok");
 
     try {
-      const live = await window.Live.load();
-      const assets = live.assets || {};
-      const hasAny = Object.keys(assets).length > 0;
-      if (!hasAny) {
-        grid.innerHTML = `<div class="muted" style="grid-column:1/-1">
-          <strong>No live data yet.</strong><br>
-          <code>data/live.json</code> is still the placeholder committed with
-          the initial scaffold. The <em>Refresh live market data</em> GitHub
-          Action has not run yet — open the repo's Actions tab and dispatch it
-          once, then reload this page.
-        </div>`;
-      } else {
-        grid.innerHTML = state.history.assets
-          .map(a => renderLiveCardHTML(a, assets[a.key] || { error: "missing from live.json" }))
-          .join("");
+      if (window.macroBrief?.refreshLiveData) {
+        await window.macroBrief.refreshLiveData();
       }
-      const ts = live.fetchedAt ? new Date(live.fetchedAt) : null;
-      document.getElementById("live-ts").textContent =
-        ts ? `${ts.toLocaleString()} (pre-fetched server-side)` : "never";
+      await reloadRuntimeData();
+      renderFlowSnapshot();
+      window.Chart.init({ history: state.history, flows: state.flows, dailyFlows: state.dailyFlows });
+      status.textContent = isElectron ? "Current data refreshed ✓" : "Published data reloaded ✓";
+      status.classList.add("ok");
+      setTimeout(() => {
+        if (status.textContent === "Current data refreshed ✓" || status.textContent === "Published data reloaded ✓") {
+          status.textContent = "";
+          status.classList.remove("ok");
+        }
+      }, 4000);
     } catch (e) {
-      grid.innerHTML = `<div class="muted" style="grid-column:1/-1">
-        Failed to load <code>data/live.json</code>: ${e.message}.<br>
-        This file is generated by the <code>Refresh live market data</code>
-        GitHub Action. If this is a brand-new deploy, trigger it once from the
-        Actions tab and reload the page.
-      </div>`;
-    }
-
-    status.textContent = "";
-    btn.disabled = false;
-  }
-
-  function renderLiveCardHTML(asset, result) {
-    if (result.error) {
-      return `<div class="live-card err" id="live-${asset.key}">
-        <div class="live-label">${asset.label}</div>
-        <div class="live-idx">${asset.idx}</div>
-        <div class="live-val">Error</div>
-        <div class="live-meta"><span>${result.error}</span></div>
-      </div>`;
-    }
-    const histLast = asset.vals[asset.vals.length - 1];
-    const delta = histLast ? ((result.value - histLast) / histLast * 100) : null;
-    const dCls  = delta === null ? "" : (delta > 0 ? "delta-up" : "delta-dn");
-    const deltaTxt = delta !== null
-      ? `${delta > 0 ? "+" : ""}${delta.toFixed(2)}% vs last brief`
-      : "";
-    return `<div class="live-card" id="live-${asset.key}">
-      <div class="live-label">${asset.label}</div>
-      <div class="live-idx">${asset.idx}</div>
-      <div class="live-val">${formatLiveValue(result.value, asset.unit)}</div>
-      <div class="live-meta">
-        <span>${result.asOf || "—"} · ${result.source || ""}</span>
-        <span class="${dCls}">${deltaTxt}</span>
-      </div>
-    </div>`;
-  }
-
-  function formatLiveValue(v, unit) {
-    if (v === null || v === undefined || isNaN(v)) return "—";
-    switch (unit) {
-      case "pts": return Math.round(v).toLocaleString("en-US");
-      case "usd": return "$" + v.toLocaleString("en-US", { maximumFractionDigits: v < 100 ? 2 : 0 });
-      case "bbl": return "$" + v.toFixed(v < 100 ? 2 : 0) + "/bbl";
-      case "oz":  return "$" + Math.round(v).toLocaleString("en-US") + "/oz";
-      case "bps": return Math.round(v) + " bps";
-      case "pct": return v.toFixed(2) + "%";
-      default:    return String(v);
+      status.textContent = "Error: " + (e.message || String(e));
+      status.classList.add("error");
+    } finally {
+      btn.disabled = false;
     }
   }
 
@@ -165,16 +353,50 @@
 
   async function loadBrief(b) {
     document.getElementById("brief-title").textContent = b.title || b.slug;
-    document.getElementById("brief-sub").textContent   = b.date || "";
+    const subEl = document.getElementById("brief-sub");
+    const subParts = [];
+    if (b.date) subParts.push(b.date);
+    if (b.generatedAt) {
+      const ts = new Date(b.generatedAt);
+      if (!isNaN(ts)) subParts.push(`Refreshed ${ts.toLocaleString()}`);
+    }
+    subEl.textContent = subParts.join(" • ");
     try {
       const r = await fetch(`briefs/${b.slug}.md`, { cache: "no-store" });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const md = await r.text();
+      if (!b.generatedAt) {
+        const lastModified = r.headers.get("last-modified");
+        if (lastModified) {
+          const ts = new Date(lastModified);
+          if (!isNaN(ts)) {
+            const parts = [];
+            if (b.date) parts.push(b.date);
+            parts.push(`Refreshed ${ts.toLocaleString()}`);
+            subEl.textContent = parts.join(" • ");
+          }
+        }
+      }
+      const md = stripLeadingSnapshotSection(await r.text());
       document.getElementById("brief-body").innerHTML = renderMarkdown(md);
     } catch (e) {
       document.getElementById("brief-body").innerHTML =
         `<div class="muted">Failed to load brief: ${e.message}</div>`;
     }
+  }
+
+  function stripLeadingSnapshotSection(markdown) {
+    if (!markdown) return "";
+    const patterns = [
+      /^##\s+Money Flow Snapshot[\s\S]*?(?=^##\s|\Z)/m,
+      /^##\s+1\.\s+Market Snapshot[\s\S]*?(?=^##\s|\Z)/m,
+      /^##\s+Market Snapshot[\s\S]*?(?=^##\s|\Z)/m,
+    ];
+
+    let out = markdown.trim();
+    for (const pattern of patterns) {
+      out = out.replace(pattern, "").trim();
+    }
+    return out;
   }
 
   function renderBriefHistory() {
@@ -333,15 +555,15 @@
 
     // Reload briefs index and chart data
     try {
-      const [history, flows, dailyFlows] = await Promise.all([
+      const [history, flows] = await Promise.all([
         loadJSON("data/history.json"),
         loadJSON("data/flows.json"),
-        loadDailyFlows(),
       ]);
       state.history    = history;
       state.flows      = flows;
-      state.dailyFlows = dailyFlows;
-      window.Chart.init({ history, flows, dailyFlows });
+      await reloadRuntimeData();
+      window.Chart.init({ history, flows, dailyFlows: state.dailyFlows });
+      renderFlowSnapshot();
     } catch {}
 
     try {
@@ -363,14 +585,30 @@
 
   // ---------- bootstrap ----------
   document.addEventListener("DOMContentLoaded", () => {
+    if (!isElectron) {
+      document.querySelectorAll("[data-desktop-only]").forEach((el) => { el.hidden = true; });
+      document.querySelectorAll(".tab[data-tab='settings']").forEach((el) => { el.hidden = true; });
+      const aboutSubtitle = document.querySelector("#tab-about .subtitle");
+      if (aboutSubtitle) aboutSubtitle.textContent = "Shared web app for published macro briefs, allocation history, and money flow snapshots.";
+      const aboutHow = document.querySelector("#tab-about .panel p");
+      if (aboutHow) aboutHow.textContent = "This hosted viewer reads pre-published market data and briefs generated by a trusted publisher account. End users do not need API keys.";
+      const noteItems = document.querySelectorAll("#tab-snapshot .notes li");
+      if (noteItems[2]) noteItems[2].innerHTML = "The <strong>Refresh</strong> button reloads the latest published data for viewers.";
+    }
+
     initTabs();
-    document.getElementById("refresh-live").addEventListener("click", refreshLive);
+    document.getElementById("refresh-current-data").addEventListener("click", refreshCurrentData);
 
     const genBtn = document.getElementById("generate-brief-btn");
     if (genBtn) {
-      if (window.macroBrief && window.macroBrief.isElectron) {
+      if (isElectron) {
         genBtn.addEventListener("click", generateBrief);
         window.macroBrief.onBriefGenerated((result) => reloadAfterGeneration(result));
+        window.macroBrief.onLiveUpdate(async () => {
+          await reloadRuntimeData();
+          renderFlowSnapshot();
+          window.Chart.init({ history: state.history, flows: state.flows, dailyFlows: state.dailyFlows });
+        });
       } else {
         genBtn.hidden = true;
       }
