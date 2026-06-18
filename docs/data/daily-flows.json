@@ -1,22 +1,7 @@
 {
-  "updatedAt": "2026-06-05T20:27:05Z",
+  "updatedAt": "2026-06-18T23:35:46Z",
   "bootstrapVersion": 5,
   "series": [
-    {
-      "date": "2026-01-28",
-      "flows": {
-        "usLarge": -1.946,
-        "usSmid": -0.489,
-        "intlDev": -0.111,
-        "em": 0.158,
-        "gold": 1.092,
-        "bitcoin": -0.124,
-        "hy": -0.169,
-        "ig": -0.172,
-        "treas": -0.251,
-        "cash": 0.089
-      }
-    },
     {
       "date": "2026-01-29",
       "flows": {
@@ -1339,6 +1324,21 @@
     },
     {
       "date": "2026-06-05",
+      "flows": {
+        "usLarge": null,
+        "usSmid": null,
+        "intlDev": null,
+        "em": null,
+        "gold": null,
+        "bitcoin": null,
+        "hy": null,
+        "ig": null,
+        "treas": null,
+        "cash": null
+      }
+    },
+    {
+      "date": "2026-06-18",
       "flows": {
         "usLarge": null,
         "usSmid": null,
