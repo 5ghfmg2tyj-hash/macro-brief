@@ -21,6 +21,11 @@ on:
         required: true
         default: false
         type: boolean
+  schedule:
+    # Weekdays at 6:15 PM America/Chicago during daylight time.
+    - cron: "15 23 * * 1-5"
+    # Mondays at 6:30 PM America/Chicago during daylight time.
+    - cron: "30 23 * * 1"
 
 concurrency:
   group: publish-and-deploy-main
@@ -52,9 +57,9 @@ jobs:
 
       - name: Publish site artifacts
         env:
-          MACRO_BRIEF_PROVIDER: ${{ inputs.provider }}
-          MACRO_BRIEF_MODEL: ${{ inputs.model }}
-          MACRO_BRIEF_SKIP_BRIEF: ${{ inputs.skip_brief && '1' || '0' }}
+          MACRO_BRIEF_PROVIDER: ${{ github.event_name == 'workflow_dispatch' && inputs.provider || 'anthropic' }}
+          MACRO_BRIEF_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.model || '' }}
+          MACRO_BRIEF_SKIP_BRIEF: ${{ github.event_name == 'schedule' && github.event.schedule == '15 23 * * 1-5' && '1' || (github.event_name == 'workflow_dispatch' && inputs.skip_brief && '1' || '0') }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: npm run publish:site
