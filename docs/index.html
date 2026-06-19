@@ -71,10 +71,6 @@
         Published by the owner account and available to approved viewers.
         Last refresh: <span id="flow-ts">—</span>
       </div>
-      <div style="margin-top:12px;">
-        <button class="btn" id="refresh-current-data">Refresh</button>
-        <span class="muted" style="margin-left:10px; font-size:12px;" id="flow-refresh-status"></span>
-      </div>
     </div>
 
     <div class="panel">
@@ -88,7 +84,7 @@
       <ul class="notes">
         <li>Daily flow is estimated from ETF shares-outstanding changes multiplied by price.</li>
         <li>WoW, MoM, 6M, and YoY columns are rolling sums built from the cached daily flow series.</li>
-        <li>The <strong>Refresh</strong> button pulls fresh market data immediately instead of waiting for the next automatic refresh.</li>
+        <li>This view updates when the published site artifacts are refreshed by the owner account.</li>
       </ul>
     </div>
   </section>
@@ -235,7 +231,7 @@
 </main>
 
 <footer class="page-footer">
-  <span class="muted">Shared viewer · published artifacts only · <span id="app-version">v1.3.0</span></span>
+  <span class="muted">Shared viewer · published artifacts only · <span id="app-version">v1.3.3</span></span>
 </footer>
 
 <script src="live.js"></script>
