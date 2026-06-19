@@ -36,6 +36,39 @@ test("summarizeFlowSeries keeps historical windows populated even when today's d
   expect(summary.cash.wow).toBeNull();
 });
 
+test("mergeBootstrapSeries backfills missing dates and fills null keys", () => {
+  const merged = __test.mergeBootstrapSeries(
+    [
+      {
+        date: "2026-06-04",
+        flows: { usLarge: 2.0, cash: 0.1 },
+      },
+      {
+        date: "2026-06-18",
+        flows: { usLarge: null, cash: null },
+      },
+    ],
+    [
+      {
+        date: "2026-06-05",
+        flows: { usLarge: 1.5, cash: 0.2 },
+      },
+      {
+        date: "2026-06-17",
+        flows: { usLarge: -0.4, cash: 0.3 },
+      },
+      {
+        date: "2026-06-18",
+        flows: { usLarge: 0.6, cash: 0.4 },
+      },
+    ]
+  );
+
+  expect(merged.map((entry) => entry.date)).toEqual(["2026-06-04", "2026-06-05", "2026-06-17", "2026-06-18"]);
+  expect(merged[3].flows.usLarge).toBe(0.6);
+  expect(merged[3].flows.cash).toBe(0.4);
+});
+
 test("renderMoneyFlowSnapshot includes numeric totals from available flow data", () => {
   const markdown = briefTest.renderMoneyFlowSnapshot({
     usLarge: { daily: 1.2e9, wow: 2.5e9, mom: 3.0e9, mo6: 4.0e9, yoy: 5.0e9 },
