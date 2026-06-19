@@ -1,8 +1,7 @@
 const { buildWeeklyFlowRollups } = require("../docs/chart.js");
 
-test("buildWeeklyFlowRollups sums trailing 7-day daily flows for each history anchor", () => {
+test("buildWeeklyFlowRollups aggregates populated daily flows into calendar-week buckets", () => {
   const history = {
-    weekDates: ["2026-04-13", "2026-04-20", "2026-06-05"],
     assets: [
       { key: "usLarge" },
       { key: "cash" },
@@ -19,13 +18,17 @@ test("buildWeeklyFlowRollups sums trailing 7-day daily flows for each history an
       { date: "2026-04-17", flows: { usLarge: 0.2, cash: 0.4 } },
       { date: "2026-04-20", flows: { usLarge: 0.4, cash: 0.5 } },
       { date: "2026-06-03", flows: { usLarge: 2.0, cash: 0.9 } },
+      { date: "2026-06-04", flows: { usLarge: -0.5, cash: 0.2 } },
       { date: "2026-06-05", flows: { usLarge: -0.5, cash: 0.2 } },
+      { date: "2026-06-18", flows: { usLarge: null, cash: null } },
     ],
   };
 
   const weekly = buildWeeklyFlowRollups(history, dailyFlows);
 
-  expect(weekly.usLarge).toEqual([1.5, 0.7, 1.5]);
-  expect(weekly.cash).toEqual([0.6, 0.8, 1.1]);
-  expect(weekly.commod).toEqual([null, null, null]);
+  expect(weekly.labels).toEqual(["Apr 10", "Apr 17", "Apr 20", "Jun 5"]);
+  expect(weekly.dates).toEqual(["2026-04-10", "2026-04-17", "2026-04-20", "2026-06-05"]);
+  expect(weekly.seriesByAsset.usLarge).toEqual([1.0, 0.8, 0.4, 1.0]);
+  expect(weekly.seriesByAsset.cash).toEqual([0.3, 0.6, 0.5, 1.3]);
+  expect(weekly.seriesByAsset.commod).toEqual([null, null, null, null]);
 });
