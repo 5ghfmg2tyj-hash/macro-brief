@@ -131,6 +131,16 @@
     return `${(v / 1e9).toFixed(2)}B`;
   }
 
+  function latestPopulatedFlowDate(series) {
+    if (!Array.isArray(series) || !series.length) return null;
+    for (let i = series.length - 1; i >= 0; i -= 1) {
+      const flows = series[i]?.flows;
+      if (!flows || typeof flows !== "object") continue;
+      if (Object.values(flows).some((v) => v != null)) return series[i].date;
+    }
+    return series[series.length - 1]?.date || null;
+  }
+
   function summarizeDailyFlowSeries(series, today) {
     const todayEntry = series.find((e) => e.date === today);
     const todayMs = new Date(today).getTime();
@@ -235,7 +245,7 @@
     if (!wrap || !tsEl) return;
 
     const series = state.dailyFlows?.series;
-    const latestDate = Array.isArray(series) && series.length ? series[series.length - 1].date : null;
+    const latestDate = latestPopulatedFlowDate(series);
     const summary = latestDate ? summarizeDailyFlowSeries(series, latestDate) : null;
     const totalsByRow = summarizeShareTotals(state.sharesHistory);
     const note = buildFlowNote(summary);
