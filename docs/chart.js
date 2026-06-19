@@ -1,12 +1,15 @@
 // ==============================================================================
 // chart.js — data-driven version of the Tilt/Flows allocation chart.
 //
-// Reads history.json + flows.json (already fetched by app.js and passed in).
-// Exports window.Chart.init({ history, flows }) -> renders into existing DOM.
+// Reads history.json plus published runtime data (already fetched by app.js and
+// passed in). Weekly flow points are derived from the daily flow history using a
+// trailing 7-day rollup at each history anchor date.
+// Exports window.Chart.init({ history, flows, dailyFlows }) -> renders into the
+// existing DOM.
 // ==============================================================================
 
 (function () {
-  let HIST, FLOWS, DAILY_FLOWS_DATA, ASSETS, WEEKS, HIST_WEEKS, GROUPS;
+  let HIST, FLOWS, DAILY_FLOWS_DATA, WEEKLY_FLOW_SERIES, ASSETS, WEEKS, HIST_WEEKS, GROUPS;
   let activeGroup = "all";
   let activeView  = "tilt";
   let visibleAssets = new Set();
@@ -24,7 +27,42 @@
   // --------------------- helpers ---------------------
   const xScale = i => M.l + (i / (WEEKS.length - 1)) * iw;
 
-  function flowSeries(a)      { return (FLOWS?.flows || {})[a.key] || null; }
+  function buildWeeklyFlowRollups(history, dailyFlowsData) {
+    const anchors = history?.weekDates || [];
+    const series = dailyFlowsData?.series || [];
+    const byAsset = {};
+    if (!anchors.length || !series.length) return byAsset;
+
+    const entries = series
+      .map((entry) => ({
+        date: entry.date,
+        ms: Date.parse(`${entry.date}T12:00:00Z`),
+        flows: entry.flows || {},
+      }))
+      .filter((entry) => Number.isFinite(entry.ms));
+
+    for (const asset of history.assets || []) {
+      byAsset[asset.key] = anchors.map((anchor) => {
+        const anchorMs = Date.parse(`${anchor}T12:00:00Z`);
+        if (!Number.isFinite(anchorMs)) return null;
+        const windowStart = anchorMs - (7 * 24 * 60 * 60 * 1000);
+        let sum = 0;
+        let seen = false;
+        for (const entry of entries) {
+          if (entry.ms <= windowStart || entry.ms > anchorMs) continue;
+          const value = entry.flows?.[asset.key];
+          if (value == null || !Number.isFinite(value)) continue;
+          sum += value;
+          seen = true;
+        }
+        return seen ? Number(sum.toFixed(3)) : null;
+      });
+    }
+
+    return byAsset;
+  }
+
+  function flowSeries(a)      { return WEEKLY_FLOW_SERIES?.[a.key] || null; }
   function dailyFlowSeries(a) {
     if (!DAILY_FLOWS_DATA?.series?.length) return null;
     const s = DAILY_FLOWS_DATA.series.map(e => e.flows?.[a.key] ?? null);
@@ -212,7 +250,7 @@
       if (activeView === "tilt") {
         sub.textContent = `Macro brief allocation calls, ${HIST_WEEKS[0]} – ${HIST_WEEKS[HIST_WEEKS.length-1]}. Line value = allocation score (−1 UW, 0 Neutral, +1 OW).`;
       } else if (activeView === "flows") {
-        sub.textContent = `Weekly net fund flows ($B) for the underlying vehicles. MMF cash flows dominate scale — toggle Cash off to zoom ETF series.`;
+        sub.textContent = `Weekly net fund flows ($B), rolled up from the published daily series at each brief date. MMF cash flows dominate scale — toggle Cash off to zoom ETF series.`;
       } else {
         const n = DAILY_FLOWS_DATA?.series?.length || 0;
         sub.textContent = `Daily fund flows ($B) estimated from ETF shares-outstanding changes (creation/redemption proxy). ${n} trading days of history. Cash and Commodities excluded (no daily ETF proxy).`;
@@ -339,7 +377,7 @@
         <div class="tt-head">Asset · Vehicle</div>
         <div class="tt-head" style="text-align:right">Net Flow</div>
         <div class="tt-head" style="text-align:right">Brief Tilt</div>`;
-      subLine = "Weekly net flow for the underlying vehicle, alongside the brief's tilt that week.";
+      subLine = "7-day net flow rollup for the underlying vehicle, aligned to that brief date.";
       rows = visible.map(a => {
         const flows = flowSeries(a);
         if (!flows) {
@@ -420,6 +458,7 @@
     HIST              = history;
     FLOWS             = flows;
     DAILY_FLOWS_DATA  = dailyFlows || null;
+    WEEKLY_FLOW_SERIES = buildWeeklyFlowRollups(history, DAILY_FLOWS_DATA);
     HIST_WEEKS        = history.weeks;
     WEEKS             = HIST_WEEKS;
     ASSETS            = history.assets;
@@ -432,7 +471,7 @@
       footer.innerHTML = `
         <strong>Tilt data:</strong> Allocation scores and representative index values from <code>data/history.json</code>.
         ${history.notes ? "<br>" + history.notes : ""}<br><br>
-        <strong>Weekly Flows ($B):</strong> From <code>data/flows.json</code> — manually committed from ICI/ETF.com/VettaFi weekly reports. ${flows?._note || ""}<br><br>
+        <strong>Weekly Flows ($B):</strong> Derived from <code>data/daily-flows.json</code> as trailing 7-day sums ending on each brief history date.<br><br>
         <strong>Daily Flows ($B):</strong> Estimated from ETF shares-outstanding changes (creation/redemption mechanism). Δshares × price ≈ net daily flow. Accumulates from first app run; Cash and Commodities excluded.
       `;
     }
@@ -441,5 +480,11 @@
     render();
   }
 
-  window.Chart = { init };
+  if (typeof window !== "undefined") {
+    window.Chart = { init };
+  }
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = { buildWeeklyFlowRollups };
+  }
 })();

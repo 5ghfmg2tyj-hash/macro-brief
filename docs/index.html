@@ -57,7 +57,7 @@
     <div class="panel chart-wrap">
       <svg id="chart" viewBox="0 0 960 440" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="tooltip" id="tooltip"></div>
-      <div class="legend-note">Tilt view: tooltip shows representative index value + WoW / 1M / 1Y deltas. Flows view: tooltip shows the weekly net fund flow for each visible asset's underlying vehicle plus the brief's tilt that week.</div>
+      <div class="legend-note">Tilt view: tooltip shows representative index value + WoW / 1M / 1Y deltas. Flows view: tooltip shows the 7-day net fund flow rollup for each visible asset's underlying vehicle plus the brief's tilt that week.</div>
       <div class="footer" id="chart-footer"></div>
     </div>
   </section>
@@ -133,7 +133,7 @@
         <li><a href="https://www.coingecko.com/" target="_blank" rel="noopener">CoinGecko</a> — BTC spot.</li>
       </ul>
       <h3>Flow data</h3>
-      <p>ETF and MMF flow figures come from published weekly reports (ICI, ETF.com, VettaFi). They are committed to <code>flows.json</code> each week.</p>
+      <p>ETF and MMF flow views are now derived from the published daily flow history, with weekly points rolled up into trailing 7-day totals at each brief date.</p>
       <h3>Source</h3>
       <p>Code lives on GitHub. The recommended deployment path is Cloudflare Pages protected by Cloudflare Access.</p>
     </div>
