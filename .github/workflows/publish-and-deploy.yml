@@ -24,8 +24,6 @@ on:
   schedule:
     # Weekdays at 6:15 PM America/Chicago during daylight time.
     - cron: "15 23 * * 1-5"
-    # Mondays at 6:30 PM America/Chicago during daylight time.
-    - cron: "30 23 * * 1"
 
 concurrency:
   group: publish-and-deploy-main
