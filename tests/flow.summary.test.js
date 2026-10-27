@@ -72,11 +72,14 @@ test("mergeBootstrapSeries backfills missing dates and fills null keys", () => {
 test("renderMoneyFlowSnapshot includes numeric totals from available flow data", () => {
   const markdown = briefTest.renderMoneyFlowSnapshot({
     usLarge: { daily: 1.2e9, wow: 2.5e9, mom: 3.0e9, mo6: 4.0e9, yoy: 5.0e9 },
+    nasdaq:  { daily: 9.0e9, wow: 9.0e9, mom: 9.0e9, mo6: 9.0e9, yoy: 9.0e9 },
     usSmid:  { daily: null, wow: 0.5e9, mom: null, mo6: 1.0e9, yoy: 1.5e9 },
     cash:    { daily: 0.3e9, wow: null, mom: 0.8e9, mo6: 1.1e9, yoy: 1.6e9 },
   });
 
   expect(markdown).toContain("| US Large Cap | SPY+IVV+VOO | +$1.20B | +$2.50B | +$3.00B | +$4.00B | +$5.00B |");
+  expect(markdown).toContain("| Nasdaq / US Growth | QQQ+QQQM | +$9.00B | +$9.00B | +$9.00B | +$9.00B | +$9.00B |");
+  expect(markdown).toContain("Nasdaq / US Growth is an overlapping style overlay and is excluded from the Total row.");
   expect(markdown).toContain("| **Total** | — | **+$1.50B** | **+$3.00B** | **+$3.80B** | **+$6.10B** | **+$8.10B** |");
 });
 

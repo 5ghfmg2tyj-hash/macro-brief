@@ -18,6 +18,7 @@
 
   const FLOW_ROWS = [
     { key: "usLarge",  label: "US Large Cap",            vehicle: "SPY+IVV+VOO", etfs: ["SPY", "IVV", "VOO"] },
+    { key: "nasdaq",   label: "Nasdaq / US Growth",      vehicle: "QQQ+QQQM",    etfs: ["QQQ", "QQQM"], includeInTotal: false },
     { key: "usSmid",   label: "US Small/Mid Cap",        vehicle: "IWM",         etfs: ["IWM"] },
     { key: "intlDev",  label: "International Dev",       vehicle: "EFA",         etfs: ["EFA"] },
     { key: "em",       label: "Emerging Markets",        vehicle: "EEM",         etfs: ["EEM"] },
@@ -248,15 +249,18 @@
     const latestDate = latestPopulatedFlowDate(series);
     const summary = latestDate ? summarizeDailyFlowSeries(series, latestDate) : null;
     const totalsByRow = summarizeShareTotals(state.sharesHistory);
-    const note = buildFlowNote(summary);
+    const statusNote = buildFlowNote(summary);
+    const overlapNote = "Nasdaq / US Growth overlaps US Large Cap and is excluded from the Total row.";
+    const note = statusNote ? `${statusNote} ${overlapNote}` : overlapNote;
+    const totalRows = FLOW_ROWS.filter((row) => row.includeInTotal !== false);
     const total = summary ? {
-      currentTotal: sumDefined(FLOW_ROWS.map((r) => totalsByRow?.[r.key]?.currentTotal ?? null)),
-      previousTotal: sumDefined(FLOW_ROWS.map((r) => totalsByRow?.[r.key]?.previousTotal ?? null)),
-      daily: sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.daily ?? null)),
-      wow:   sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.wow ?? null)),
-      mom:   sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.mom ?? null)),
-      mo6:   sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.mo6 ?? null)),
-      yoy:   sumDefined(FLOW_ROWS.map((r) => summary[r.key]?.yoy ?? null)),
+      currentTotal: sumDefined(totalRows.map((r) => totalsByRow?.[r.key]?.currentTotal ?? null)),
+      previousTotal: sumDefined(totalRows.map((r) => totalsByRow?.[r.key]?.previousTotal ?? null)),
+      daily: sumDefined(totalRows.map((r) => summary[r.key]?.daily ?? null)),
+      wow:   sumDefined(totalRows.map((r) => summary[r.key]?.wow ?? null)),
+      mom:   sumDefined(totalRows.map((r) => summary[r.key]?.mom ?? null)),
+      mo6:   sumDefined(totalRows.map((r) => summary[r.key]?.mo6 ?? null)),
+      yoy:   sumDefined(totalRows.map((r) => summary[r.key]?.yoy ?? null)),
     } : null;
 
     const updatedAt = state.dailyFlows?.updatedAt || state.live?.fetchedAt || null;

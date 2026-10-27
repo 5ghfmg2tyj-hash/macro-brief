@@ -168,6 +168,7 @@ async function _try(fn, ...args) {
 // Shares outstanding change = creation/redemption → net flow ≈ Δshares × price.
 const ETF_FLOWS = [
   { key: "usLarge", vehicle: "SPY+IVV+VOO", etfs: ["SPY","IVV","VOO"] },
+  { key: "nasdaq",  vehicle: "QQQ+QQQM",     etfs: ["QQQ","QQQM"] },
   { key: "usSmid",  vehicle: "IWM",         etfs: ["IWM"] },
   { key: "intlDev", vehicle: "EFA",         etfs: ["EFA"] },
   { key: "em",      vehicle: "EEM",         etfs: ["EEM"] },
@@ -181,7 +182,7 @@ const ETF_FLOWS = [
 ];
 
 // Increment when new ETFs are added to ETF_FLOWS — triggers a fresh bootstrap on existing installs.
-const BOOTSTRAP_VERSION = 5;
+const BOOTSTRAP_VERSION = 6;
 
 function startOfYearIso(today) {
   return `${String(today).slice(0, 4)}-01-01`;
@@ -443,7 +444,7 @@ async function fetchFlows(userData) {
   dailyFlows.series = [
     ...dailyFlows.series.filter(e => e.date !== today),
     todayEntry,
-  ].sort((a, b) => a.date.localeCompare(b.date)).slice(-90);
+  ].sort((a, b) => a.date.localeCompare(b.date)).slice(-400);
   dailyFlows.updatedAt = new Date().toISOString().replace(/\.\d+Z$/, "Z");
   fs.mkdirSync(path.dirname(dailyFlowsPath), { recursive: true });
   fs.writeFileSync(dailyFlowsPath, JSON.stringify(dailyFlows, null, 2) + "\n");

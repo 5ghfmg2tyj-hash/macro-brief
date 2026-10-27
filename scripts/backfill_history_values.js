@@ -61,6 +61,7 @@ async function fetchFred(series, scale = 1) {
 
 const SOURCES = {
   usLarge:  () => fetchYahoo("^GSPC", "2025-01-01", "2027-01-10"),
+  nasdaq:   () => fetchYahoo("^NDX", "2025-01-01", "2027-01-10"),
   usSmid:   () => fetchYahoo("IWM", "2025-01-01", "2027-01-10"),
   intlDev:  () => fetchYahoo("EFA", "2025-01-01", "2027-01-10"),
   em:       () => fetchYahoo("EEM", "2025-01-01", "2027-01-10"),

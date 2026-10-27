@@ -3,6 +3,7 @@
   "weeks": ["Mar 23", "Mar 30", "Apr 13", "Apr 20"],
   "flows": {
     "usLarge": [4.0, 6.0, 5.0, 7.9],
+    "nasdaq":  null,
     "usSmid":  [-0.8, -1.0, 2.5, -2.0],
     "intlDev": [0.3, 0.4, 0.5, 0.0],
     "em":      [0.2, 0.3, 0.6, 0.8],
@@ -16,6 +17,7 @@
   },
   "confirmationLevel": {
     "usLarge": "Apr 18 week confirmed (SPY+IVV+VOO aggregate); earlier weeks directional.",
+    "nasdaq":  "No legacy weekly series; current data is derived from QQQ+QQQM in daily-flows.json.",
     "usSmid":  "Apr 18 week confirmed (IWM weekly); earlier weeks directional.",
     "intlDev": "Directional estimates from monthly totals.",
     "em":      "Directional estimates from monthly totals.",

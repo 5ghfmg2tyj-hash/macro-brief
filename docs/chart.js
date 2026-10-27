@@ -148,6 +148,7 @@
     return "UW (−1)";
   }
   function scoreLabel(v) {
+    if (v === null || v === undefined || !Number.isFinite(v)) return "n/a";
     if (v >=  0.99) return "OW";
     if (v >=  0.4)  return "Sl. OW";
     if (v > -0.4)   return "Neutral";
@@ -361,12 +362,22 @@
       if (!visibleAssets.has(a.key)) return;
       if (!isPlottable(a)) return;
       const series = seriesFor(a);
-      const pathD = series.map((v, i) => `${i===0?"M":"L"}${xScale(i)},${yScale(v)}`).join(" ");
+      let drawing = false;
+      const pathD = series.map((v, i) => {
+        if (!Number.isFinite(v)) {
+          drawing = false;
+          return "";
+        }
+        const command = drawing ? "L" : "M";
+        drawing = true;
+        return `${command}${xScale(i)},${yScale(v)}`;
+      }).filter(Boolean).join(" ");
       svg.appendChild(el("path", {
         d: pathD, fill: "none", stroke: a.color,
         "stroke-width": 2, "stroke-dasharray": a.dash, "stroke-linecap": "round"
       }));
       series.forEach((v, i) => {
+        if (!Number.isFinite(v)) return;
         const cx = xScale(i), cy = yScale(v);
         const fill = markerStroke(a.shape) ? "none" : a.color;
         const pt = el("path", {
@@ -496,7 +507,7 @@
 
   // ETF vehicle labels for daily flow tooltip
   const ETF_FLOWS_MAP = {
-    usLarge: "SPY+IVV+VOO", usSmid: "IWM",  intlDev: "EFA",
+    usLarge: "SPY+IVV+VOO", nasdaq: "QQQ+QQQM", usSmid: "IWM",  intlDev: "EFA",
     em:      "EEM",         gold:   "GLD",  bitcoin: "IBIT+FBTC",
     hy:      "HYG+JNK",    ig:     "LQD",  treas:   "IEF+TLT",
   };

@@ -56,7 +56,7 @@ async function withRetry(attemptFn, label, onStatus) {
   throw finalErr;
 }
 
-const ASSET_KEYS = ["usLarge","usSmid","intlDev","em","gold","commod","bitcoin","ig","hy","treas","cash"];
+const ASSET_KEYS = ["usLarge","nasdaq","usSmid","intlDev","em","gold","commod","bitcoin","ig","hy","treas","cash"];
 
 const VALID_SCORES = new Set([-1, -0.5, 0, 0.5, 1]);
 
@@ -81,6 +81,7 @@ Allocation scores must be one of: -1, -0.5, 0, 0.5, or 1
 
 Asset classes to score:
   usLarge  = US Large Cap Equities
+  nasdaq   = Nasdaq / US Growth Equities
   usSmid   = US Small/Mid Cap Equities
   intlDev  = International Developed Markets (Europe, Japan, UK)
   em       = Emerging Markets
@@ -100,6 +101,7 @@ function fmtB(v) {
 
 const FLOW_ROWS = [
   { key: "usLarge",  label: "US Large Cap",            vehicle: "SPY+IVV+VOO" },
+  { key: "nasdaq",   label: "Nasdaq / US Growth",      vehicle: "QQQ+QQQM", includeInTotal: false },
   { key: "usSmid",   label: "US Small/Mid Cap",        vehicle: "IWM" },
   { key: "intlDev",  label: "International Dev",       vehicle: "EFA" },
   { key: "em",       label: "Emerging Markets",        vehicle: "EEM" },
@@ -155,6 +157,8 @@ function renderMoneyFlowSnapshot(df) {
   }
 
   lines.push(
+    "NOTE: Nasdaq / US Growth is an overlapping style overlay and is excluded from the Total row.",
+    "",
     "| Asset Class | Vehicle | Daily Flow | WoW | MoM | 6M | YoY |",
     "|---|---|---|---|---|---|---|"
   );
@@ -164,12 +168,13 @@ function renderMoneyFlowSnapshot(df) {
     lines.push(`| ${row.label} | ${row.vehicle} | ${fmtB(f?.daily ?? null)} | ${fmtB(f?.wow ?? null)} | ${fmtB(f?.mom ?? null)} | ${fmtB(f?.mo6 ?? null)} | ${fmtB(f?.yoy ?? null)} |`);
   }
 
+  const totalRows = FLOW_ROWS.filter((row) => row.includeInTotal !== false);
   const total = {
-    daily: sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.daily ?? null)),
-    wow:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.wow ?? null)),
-    mom:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mom ?? null)),
-    mo6:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mo6 ?? null)),
-    yoy:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.yoy ?? null)),
+    daily: sumDefined(totalRows.map((r) => df?.[r.key]?.daily ?? null)),
+    wow:   sumDefined(totalRows.map((r) => df?.[r.key]?.wow ?? null)),
+    mom:   sumDefined(totalRows.map((r) => df?.[r.key]?.mom ?? null)),
+    mo6:   sumDefined(totalRows.map((r) => df?.[r.key]?.mo6 ?? null)),
+    yoy:   sumDefined(totalRows.map((r) => df?.[r.key]?.yoy ?? null)),
   };
 
   lines.push(`| **Total** | — | **${fmtB(total.daily)}** | **${fmtB(total.wow)}** | **${fmtB(total.mom)}** | **${fmtB(total.mo6)}** | **${fmtB(total.yoy)}** |`);
@@ -219,7 +224,7 @@ function buildUserPrompt(liveJson, historyJson) {
   // Fund flow data for Money Flow Snapshot table
   // ETF vehicle names — must be used exactly as-is in the brief table
   const VEHICLES = {
-    usLarge: "SPY+IVV+VOO", usSmid:  "IWM",      intlDev: "EFA",
+    usLarge: "SPY+IVV+VOO", nasdaq:  "QQQ+QQQM", usSmid:  "IWM",      intlDev: "EFA",
     em:      "EEM",         gold:    "GLD",       commod:  "—",
     bitcoin: "IBIT+FBTC",  ig:      "LQD",       hy:      "HYG+JNK",
     treas:   "IEF+TLT",    cash:    "SGOV+BIL",
@@ -233,12 +238,13 @@ function buildUserPrompt(liveJson, historyJson) {
     return `  ${a.label} | vehicle=${veh} | daily=${fmtB(f.daily)} | wow=${fmtB(f.wow)} | mom=${fmtB(f.mom)} | mo6=${fmtB(f.mo6)} | yoy=${fmtB(f.yoy)}`;
   }).join("\n");
 
+  const totalRows = FLOW_ROWS.filter((row) => row.includeInTotal !== false);
   const totalRow = {
-    daily: sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.daily ?? null)),
-    wow:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.wow ?? null)),
-    mom:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mom ?? null)),
-    mo6:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.mo6 ?? null)),
-    yoy:   sumDefined(FLOW_ROWS.map((r) => df?.[r.key]?.yoy ?? null)),
+    daily: sumDefined(totalRows.map((r) => df?.[r.key]?.daily ?? null)),
+    wow:   sumDefined(totalRows.map((r) => df?.[r.key]?.wow ?? null)),
+    mom:   sumDefined(totalRows.map((r) => df?.[r.key]?.mom ?? null)),
+    mo6:   sumDefined(totalRows.map((r) => df?.[r.key]?.mo6 ?? null)),
+    yoy:   sumDefined(totalRows.map((r) => df?.[r.key]?.yoy ?? null)),
   };
 
   const nWeeks = (historyJson.weeks || []).length;
@@ -260,6 +266,7 @@ You MUST use exactly these values in your response — do not infer or change th
 FUND FLOW DATA — use this for the Money Flow Snapshot table (fetched ${liveJson.fetchedAt || "recently"}):
 ${flowNote}
 CRITICAL: Use the EXACT vehicle names from this data. Do NOT substitute, rename, or add alternatives (e.g. use "IWM" not "IWM/IJR", "GLD" not "GLD/IAU").
+CRITICAL: Nasdaq / US Growth overlaps US Large Cap. Score it independently as a growth/style overlay, and do not treat it as an additive broad-market allocation. It is excluded from the Total flow row to prevent double counting.
 ${flowRows}
   Total | vehicle=— | daily=${fmtB(totalRow.daily)} | wow=${fmtB(totalRow.wow)} | mom=${fmtB(totalRow.mom)} | mo6=${fmtB(totalRow.mo6)} | yoy=${fmtB(totalRow.yoy)}
 
@@ -475,7 +482,7 @@ function updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations,
     weekDates.push(weekDate);
     for (const asset of history.assets) {
       const score = allocations[asset.key];
-      asset.alloc.push(VALID_SCORES.has(score) ? score : 0);
+      asset.alloc.push(VALID_SCORES.has(score) ? score : null);
       updateMarketHistoryPoint(asset, weeks.length - 1, liveJson?.assets?.[asset.key]);
     }
   }
