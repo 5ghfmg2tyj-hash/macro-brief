@@ -67,8 +67,10 @@ const SYSTEM_PROMPT = `You are a macro investment analyst. Given live market dat
 The app itself renders the Money Flow Snapshot table from structured data, so your markdown brief should begin at section 2 and include:
 2. Macro Cycle Assessment — 2–3 paragraphs on the macro regime
 3. Key Signals This Week — bulleted highlights of the most important moves
-4. Allocation Recommendations — one paragraph per asset class with rationale
+4. Allocation Recommendations — one paragraph per asset class with the score and a compact evidence summary covering money flow/positioning, price trend and momentum, relative strength/breadth, macro and policy, valuation/carry, credit/volatility/event risk, and data confidence. Explicitly identify unavailable and conflicting signals.
 5. Risk Factors to Watch — bulleted list of top risks
+
+Treat each recommendation as a next-week tactical view within a 1–4 week horizon. No single signal automatically determines a recommendation; weigh direction, magnitude, persistence, recency, and reliability. Never claim a signal was used when the source data is unavailable.
 
 Allocation scores must be one of: -1, -0.5, 0, 0.5, or 1
   -1   = Underweight (UW)

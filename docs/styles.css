@@ -343,6 +343,29 @@ svg#chart { display: block; width: 100%; height: auto; }
   border-top: 1px solid var(--border);
 }
 .allocation-horizon strong { color: #e2e8f0; }
+.signal-framework {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+.signal-framework strong {
+  width: 100%;
+  color: #e2e8f0;
+  font-size: 12px;
+}
+.signal-framework span {
+  padding: 4px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(11, 18, 32, 0.52);
+  color: var(--muted);
+}
+.allocation-guide .signal-method { margin-top: 10px; }
+.signal-method strong { color: #e2e8f0; }
 
 .brief-body {
   font-size: 14px;
@@ -363,6 +386,10 @@ svg#chart { display: block; width: 100%; height: auto; }
   color: var(--muted);
 }
 .brief-body table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin: 10px 0;
   font-size: 13px;

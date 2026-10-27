@@ -67,7 +67,16 @@ test("brief page loads October 23 and lists all nine retrospectives", async () =
   expect(guide).toContain("coming week");
   expect(guide).toContain("1–4 week outlook");
   expect(guide).toContain("archived brief");
+  expect(guide).toContain("money flow and positioning");
+  expect(guide).toContain("price trend and momentum");
+  expect(guide).toContain("valuation, yield, and carry");
+  expect(guide).toContain("No single signal automatically determines");
   const links = [...window.document.querySelectorAll("#brief-history a")];
   expect(links.filter((link) => link.dataset.slug >= "2026-08-28")).toHaveLength(9);
   expect(window.document.getElementById("brief-body").textContent).toContain("Small caps rebounded");
+  const recommendationTable = [...window.document.querySelectorAll("#brief-body table")]
+    .find((table) => table.textContent.includes("Money-flow signal"));
+  expect(recommendationTable).toBeTruthy();
+  expect(recommendationTable.textContent).toContain("Price / relative strength");
+  expect(recommendationTable.textContent).toContain("Macro, valuation, and risk signals");
 });
