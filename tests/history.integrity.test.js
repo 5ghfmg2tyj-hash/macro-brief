@@ -20,7 +20,8 @@ test("published allocation history is aligned and current through the retrospect
 
   const nasdaq = history.assets.find((asset) => asset.key === "nasdaq");
   expect(nasdaq).toMatchObject({ idx: "Nasdaq-100", flowIdx: expect.stringContaining("QQQ + QQQM") });
-  expect(nasdaq.alloc.every((score) => score === null)).toBe(true);
+  expect(nasdaq.alloc.slice(0, -1).every((score) => score === null)).toBe(true);
+  expect(nasdaq.alloc.at(-1)).toBe(-0.5);
 });
 
 test("tilt chart visibly extends through October 23", () => {
@@ -53,6 +54,6 @@ test("tilt chart visibly extends through October 23", () => {
   expect(tooltip).toContain("1M");
   expect(tooltip).toContain("1Y");
   expect(tooltip).toContain("Nasdaq / US GrowthNasdaq-100");
-  expect(tooltip).toContain("n/a");
-  expect(tooltip).not.toContain("$n/a");
+  expect(tooltip).toContain("Sl. UW");
+  expect(tooltip).not.toContain("n/a");
 });
