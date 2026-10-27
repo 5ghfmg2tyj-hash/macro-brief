@@ -296,6 +296,33 @@ async function buildBootstrapSeries(today) {
   return series;
 }
 
+function mergeBootstrapSeries(existingSeries, bootstrapSeries) {
+  const merged = Array.isArray(existingSeries)
+    ? existingSeries.map((entry) => ({
+        date: entry.date,
+        flows: { ...(entry.flows || {}) },
+      }))
+    : [];
+  if (!Array.isArray(bootstrapSeries) || !bootstrapSeries.length) return merged;
+
+  const bootstrapMap = new Map(bootstrapSeries.map((entry) => [entry.date, entry.flows || {}]));
+
+  for (const entry of merged) {
+    const bFlows = bootstrapMap.get(entry.date);
+    if (!bFlows) continue;
+    for (const [key, val] of Object.entries(bFlows)) {
+      if (entry.flows[key] == null && val != null) entry.flows[key] = val;
+    }
+  }
+
+  const existingDates = new Set(merged.map((entry) => entry.date));
+  const toAdd = bootstrapSeries
+    .filter((entry) => !existingDates.has(entry.date))
+    .map((entry) => ({ date: entry.date, flows: { ...(entry.flows || {}) } }));
+
+  return [...merged, ...toAdd].sort((a, b) => a.date.localeCompare(b.date));
+}
+
 function summarizeFlowSeries(series, today) {
   const todayEntry = series.find((e) => e.date === today);
   const todayMs = new Date(today).getTime();
@@ -330,41 +357,26 @@ async function fetchFlows(userData) {
   const dailyFlowsPath = path.join(userData, "daily-flows.json");
   const today          = new Date().toISOString().slice(0, 10);
 
-  // ---- Load daily-flows; bootstrap on first run or when new ETFs are added ----
+  // ---- Load daily-flows; backfill from YTD OHLCV history on every run ----
   let dailyFlows = { updatedAt: null, bootstrapVersion: 0, series: [] };
   try { dailyFlows = JSON.parse(fs.readFileSync(dailyFlowsPath, "utf8")); } catch {}
   // Back-compat: treat old `bootstrapped: true` flag as version 1
   if (dailyFlows.bootstrapped && !dailyFlows.bootstrapVersion) dailyFlows.bootstrapVersion = 1;
 
-  if ((dailyFlows.bootstrapVersion || 0) < BOOTSTRAP_VERSION) {
-    console.log(`  flows: bootstrapping YTD history (v${BOOTSTRAP_VERSION})…`);
-    try {
-      const bootstrapSeries = await buildBootstrapSeries(today);
-      if (bootstrapSeries.length) {
-        // Build a lookup of bootstrap flows by date
-        const bootstrapMap = new Map(bootstrapSeries.map(e => [e.date, e.flows]));
-
-        // Pass 1: backfill any missing flow keys in existing entries
-        for (const entry of dailyFlows.series) {
-          const bFlows = bootstrapMap.get(entry.date);
-          if (!bFlows) continue;
-          for (const [key, val] of Object.entries(bFlows)) {
-            if (entry.flows[key] == null && val != null) entry.flows[key] = val;
-          }
-        }
-
-        // Pass 2: append entirely new dates that weren't in the series yet
-        const existingDates = new Set(dailyFlows.series.map(e => e.date));
-        const toAdd = bootstrapSeries.filter(e => !existingDates.has(e.date));
-        dailyFlows.series = [...toAdd, ...dailyFlows.series]
-          .sort((a, b) => a.date.localeCompare(b.date));
-
-        dailyFlows.bootstrapVersion = BOOTSTRAP_VERSION;
-        console.log(`  flows: bootstrap v${BOOTSTRAP_VERSION} — backfilled keys + added ${toAdd.length} new days`);
-      }
-    } catch (e) {
-      console.warn("  flows: bootstrap error:", e.message);
+  console.log(`  flows: syncing YTD history (v${BOOTSTRAP_VERSION})…`);
+  try {
+    const beforeDates = new Set((dailyFlows.series || []).map((entry) => entry.date));
+    const bootstrapSeries = await buildBootstrapSeries(today);
+    if (bootstrapSeries.length) {
+      dailyFlows.series = mergeBootstrapSeries(dailyFlows.series, bootstrapSeries);
+      const afterDates = new Set(dailyFlows.series.map((entry) => entry.date));
+      const addedDates = [...afterDates].filter((date) => !beforeDates.has(date));
+      const versionChanged = (dailyFlows.bootstrapVersion || 0) < BOOTSTRAP_VERSION;
+      dailyFlows.bootstrapVersion = BOOTSTRAP_VERSION;
+      console.log(`  flows: sync v${BOOTSTRAP_VERSION} — added ${addedDates.length} dates${versionChanged ? " and advanced bootstrap version" : ""}`);
     }
+  } catch (e) {
+    console.warn("  flows: bootstrap error:", e.message);
   }
 
   // ---- Shares-outstanding method for today's real flow ----
@@ -537,4 +549,8 @@ async function run({ historyPath, outPath }) {
   console.log(`\nWrote ${outPath} (${Object.keys(results).length} assets)`);
 }
 
-module.exports = { run, summarizeFlowSeries, __test: { startOfYearIso, summarizeFlowSeries } };
+module.exports = {
+  run,
+  summarizeFlowSeries,
+  __test: { startOfYearIso, summarizeFlowSeries, mergeBootstrapSeries },
+};
