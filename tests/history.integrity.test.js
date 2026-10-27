@@ -35,6 +35,11 @@ test("tilt chart visibly extends through October 23", () => {
   expect(dom.window.document.getElementById("subtitle").textContent).toContain("Oct 23");
   const labels = [...dom.window.document.querySelectorAll("#chart text")].map((node) => node.textContent);
   expect(labels).toContain("Oct 23");
+  expect(labels).toContain("starts Oct 23");
+
+  const nasdaqLine = dom.window.document.querySelector('[data-series-key="nasdaq"]');
+  expect(nasdaqLine.getAttribute("d")).toMatch(/^M[\d.]+,[\d.]+ L[\d.]+,[\d.]+$/);
+  expect(dom.window.document.querySelector('[data-point-key="nasdaq"]')).not.toBeNull();
 
   const points = [...dom.window.document.querySelectorAll("#chart path")]
     .filter((node) => node.style.cursor === "pointer");

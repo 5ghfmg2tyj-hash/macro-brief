@@ -362,8 +362,11 @@
       if (!visibleAssets.has(a.key)) return;
       if (!isPlottable(a)) return;
       const series = seriesFor(a);
+      const finitePoints = series
+        .map((value, index) => ({ value, index }))
+        .filter((point) => Number.isFinite(point.value));
       let drawing = false;
-      const pathD = series.map((v, i) => {
+      let pathD = series.map((v, i) => {
         if (!Number.isFinite(v)) {
           drawing = false;
           return "";
@@ -372,17 +375,38 @@
         drawing = true;
         return `${command}${xScale(i)},${yScale(v)}`;
       }).filter(Boolean).join(" ");
+      if (finitePoints.length === 1) {
+        const point = finitePoints[0];
+        const x = xScale(point.index);
+        const y = yScale(point.value);
+        const step = WEEKS.length > 1 ? iw / (WEEKS.length - 1) : 80;
+        pathD = `M${Math.max(M.l, x - step * 0.45)},${y} L${x},${y}`;
+      }
       svg.appendChild(el("path", {
         d: pathD, fill: "none", stroke: a.color,
-        "stroke-width": 2, "stroke-dasharray": a.dash, "stroke-linecap": "round"
+        "stroke-width": 2, "stroke-dasharray": a.dash, "stroke-linecap": "round",
+        "data-series-key": a.key
       }));
+      if (activeView === "tilt" && finitePoints.length === 1) {
+        const point = finitePoints[0];
+        svg.appendChild(el("text", {
+          x: xScale(point.index) - 8,
+          y: yScale(point.value) - 10,
+          fill: a.color,
+          "text-anchor": "end",
+          "font-size": 10,
+          "font-weight": 600,
+          "data-series-start": a.key
+        }, `starts ${WEEKS[point.index]}`));
+      }
       series.forEach((v, i) => {
         if (!Number.isFinite(v)) return;
         const cx = xScale(i), cy = yScale(v);
         const fill = markerStroke(a.shape) ? "none" : a.color;
         const pt = el("path", {
           d: markerPath(a.shape, cx, cy),
-          fill, stroke: a.color, "stroke-width": 1.6
+          fill, stroke: a.color, "stroke-width": finitePoints.length === 1 ? 2.4 : 1.6,
+          "data-point-key": a.key
         });
         pt.style.cursor = "pointer";
         pt.addEventListener("mousemove", e => showTip(e, i));
