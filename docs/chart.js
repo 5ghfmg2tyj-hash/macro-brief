@@ -164,6 +164,7 @@
     return `${sign}$${(abs * 1000).toFixed(0)}M`;
   }
   function fmtVal(v, unit) {
+    if (v === null || v === undefined || !Number.isFinite(v)) return "n/a";
     switch (unit) {
       case "pts": return Math.round(v).toLocaleString("en-US");
       case "usd": return "$" + v.toLocaleString("en-US", { maximumFractionDigits: v < 100 ? 2 : 0 });
@@ -175,7 +176,7 @@
     }
   }
   function fmtDelta(cur, ref, unit) {
-    if (ref === null || ref === undefined) return { txt: "n/a", cls: "delta-flat" };
+    if (!Number.isFinite(cur) || !Number.isFinite(ref)) return { txt: "n/a", cls: "delta-flat" };
     const d = cur - ref;
     const pct = ref !== 0 ? (d / Math.abs(ref)) * 100 : 0;
     if (Math.abs(d) < 1e-9) return { txt: "flat", cls: "delta-flat" };

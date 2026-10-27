@@ -13,7 +13,16 @@
     "Apr 13",
     "Apr 20",
     "Jun 5",
-    "Jul 6"
+    "Jul 6",
+    "Aug 28",
+    "Sep 4",
+    "Sep 11",
+    "Sep 18",
+    "Sep 25",
+    "Oct 2",
+    "Oct 9",
+    "Oct 16",
+    "Oct 23"
   ],
   "weekDates": [
     "2026-03-23",
@@ -21,7 +30,16 @@
     "2026-04-13",
     "2026-04-20",
     "2026-06-05",
-    "2026-07-07"
+    "2026-07-07",
+    "2026-08-28",
+    "2026-09-04",
+    "2026-09-11",
+    "2026-09-18",
+    "2026-09-25",
+    "2026-10-02",
+    "2026-10-09",
+    "2026-10-16",
+    "2026-10-23"
   ],
   "assets": [
     {
@@ -37,7 +55,16 @@
         0,
         0,
         -0.5,
-        -0.5
+        -0.5,
+        0,
+        0,
+        -0.5,
+        -0.5,
+        0.5,
+        -0.5,
+        0.5,
+        -1,
+        0
       ],
       "idx": "S&P 500",
       "unit": "pts",
@@ -69,7 +96,16 @@
         -1,
         1,
         0,
-        0
+        0,
+        -0.5,
+        0,
+        -1,
+        -1,
+        -0.5,
+        -0.5,
+        -0.5,
+        -1,
+        0.5
       ],
       "idx": "IWM (Russell 2000 ETF)",
       "unit": "usd",
@@ -100,7 +136,16 @@
         1,
         1,
         0,
-        0.5
+        0.5,
+        -0.5,
+        0.5,
+        -0.5,
+        -1,
+        0,
+        -1,
+        -0.5,
+        0,
+        -0.5
       ],
       "idx": "EFA (MSCI EAFE ETF)",
       "unit": "usd",
@@ -131,7 +176,16 @@
         0,
         1,
         -0.5,
-        0
+        0,
+        0,
+        0.5,
+        -0.5,
+        -0.5,
+        0.5,
+        0,
+        -1,
+        -1,
+        -0.5
       ],
       "idx": "EEM (MSCI EM ETF)",
       "unit": "usd",
@@ -162,7 +216,16 @@
         1,
         1,
         1,
-        1
+        1,
+        0.5,
+        0,
+        0.5,
+        1,
+        0,
+        0,
+        1,
+        0.5,
+        0
       ],
       "idx": "Gold spot",
       "unit": "oz",
@@ -194,6 +257,15 @@
         0,
         0,
         1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
         0
       ],
       "idx": "WTI Crude",
@@ -226,7 +298,16 @@
         0,
         0,
         -1,
-        -0.5
+        -0.5,
+        0,
+        0.5,
+        -1,
+        0.5,
+        0.5,
+        0,
+        -1,
+        -1,
+        0
       ],
       "idx": "BTC-USD",
       "unit": "usd",
@@ -258,7 +339,16 @@
         0,
         0.5,
         0,
-        0
+        0,
+        0,
+        -0.5,
+        -0.5,
+        0,
+        -0.5,
+        -0.5,
+        0.5,
+        0.5,
+        0.5
       ],
       "idx": "IG OAS (ICE BofA)",
       "unit": "bps",
@@ -291,7 +381,16 @@
         -1,
         -1,
         -0.5,
-        -0.5
+        -0.5,
+        -0.5,
+        0,
+        -1,
+        -1,
+        -1,
+        -1,
+        0,
+        -1,
+        0.5
       ],
       "idx": "HY OAS (ICE BofA)",
       "unit": "bps",
@@ -324,7 +423,16 @@
         1,
         1,
         0,
-        0
+        0,
+        0,
+        -0.5,
+        0,
+        0.5,
+        -0.5,
+        -0.5,
+        0.5,
+        1,
+        0.5
       ],
       "idx": "10Y US Treasury yield",
       "unit": "pct",
@@ -356,7 +464,16 @@
         0.5,
         -1,
         0.5,
-        0.5
+        0.5,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
       ],
       "idx": "Fed Funds target (upper)",
       "unit": "pct",
@@ -397,5 +514,5 @@
       "label": "Alternatives"
     }
   ],
-  "notes": "Apr 19 / Apr 20 duplicate weekly points were collapsed into a single Apr 20 entry. Weekly index values for Mar 23 / Mar 30 / Apr 13 for IWM, EFA, EEM, and BTC are reasonable approximations; Apr 20 values match the Apr 17/20 published levels."
+  "notes": "Apr 19 / Apr 20 duplicate weekly points were collapsed into a single Apr 20 entry. Weekly index values for Mar 23 / Mar 30 / Apr 13 for IWM, EFA, EEM, and BTC are reasonable approximations; Apr 20 values match the Apr 17/20 published levels. Aug 28 through Oct 23 allocation calls were reconstructed in the October 26 retrospective; commodities are neutral because the retrospective did not issue an explicit commodities call."
 }
