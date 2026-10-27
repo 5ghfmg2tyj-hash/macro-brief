@@ -60,6 +60,13 @@ test("brief page loads October 23 and lists all nine retrospectives", async () =
   await new Promise((resolve) => setTimeout(resolve, 40));
 
   expect(window.document.getElementById("brief-title").textContent).toContain("October 23, 2026");
+  const guide = window.document.querySelector(".allocation-guide").textContent.replace(/\s+/g, " ");
+  expect(guide).toContain("Overweight (+1)");
+  expect(guide).toContain("Neutral (0)");
+  expect(guide).toContain("Underweight (−1)");
+  expect(guide).toContain("coming week");
+  expect(guide).toContain("1–4 week outlook");
+  expect(guide).toContain("archived brief");
   const links = [...window.document.querySelectorAll("#brief-history a")];
   expect(links.filter((link) => link.dataset.slug >= "2026-08-28")).toHaveLength(9);
   expect(window.document.getElementById("brief-body").textContent).toContain("Small caps rebounded");

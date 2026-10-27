@@ -292,6 +292,58 @@ svg#chart { display: block; width: 100%; height: auto; }
 }
 
 /* ============ BRIEF ============ */
+.allocation-guide {
+  margin-bottom: 22px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: rgba(96, 165, 250, 0.06);
+}
+.allocation-guide h2 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: #f8fafc;
+}
+.allocation-guide p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.allocation-scale {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 13px 0;
+}
+.allocation-scale div {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(11, 18, 32, 0.52);
+}
+.allocation-scale strong,
+.allocation-scale span {
+  display: block;
+}
+.allocation-scale strong {
+  margin-bottom: 3px;
+  color: #f8fafc;
+  font-size: 11.5px;
+}
+.allocation-scale span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.allocation-horizon {
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+.allocation-horizon strong { color: #e2e8f0; }
+
 .brief-body {
   font-size: 14px;
   line-height: 1.6;
@@ -338,6 +390,14 @@ svg#chart { display: block; width: 100%; height: auto; }
 .brief-history li:last-child { border-bottom: none; }
 .brief-history a { text-decoration: none; }
 .brief-history a:hover { text-decoration: underline; }
+
+@media (max-width: 800px) {
+  .allocation-scale { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .allocation-scale { grid-template-columns: 1fr; }
+}
 
 /* ============ GENERATE BRIEF ============ */
 .btn-generate {
