@@ -12,6 +12,10 @@ test("published allocation history is aligned and current through the retrospect
   for (const asset of history.assets) {
     expect(asset.alloc).toHaveLength(history.weekDates.length);
     expect(asset.alloc.every((score) => [-1, -0.5, 0, 0.5, 1].includes(score))).toBe(true);
+    for (const field of ["vals", "wowVals", "moVals", "yrVals"]) {
+      expect(asset[field]).toHaveLength(history.weekDates.length);
+      expect(asset[field].every(Number.isFinite)).toBe(true);
+    }
   }
 });
 
@@ -26,4 +30,23 @@ test("tilt chart visibly extends through October 23", () => {
   expect(dom.window.document.getElementById("subtitle").textContent).toContain("Oct 23");
   const labels = [...dom.window.document.querySelectorAll("#chart text")].map((node) => node.textContent);
   expect(labels).toContain("Oct 23");
+
+  const points = [...dom.window.document.querySelectorAll("#chart path")]
+    .filter((node) => node.style.cursor === "pointer");
+  const tooltipNode = dom.window.document.getElementById("tooltip");
+  Object.defineProperty(tooltipNode, "offsetParent", {
+    configurable: true,
+    value: dom.window.document.body,
+  });
+  points.at(-1).dispatchEvent(new dom.window.MouseEvent("mousemove", {
+    bubbles: true,
+    clientX: 400,
+    clientY: 300,
+  }));
+  const tooltip = tooltipNode.textContent.replace(/\s+/g, " ");
+  expect(tooltip).toContain("Oct 23");
+  expect(tooltip).toContain("WoW");
+  expect(tooltip).toContain("1M");
+  expect(tooltip).toContain("1Y");
+  expect(tooltip).not.toContain("n/a");
 });

@@ -1,6 +1,6 @@
 {
   "name": "macro-brief",
-  "version": "1.3.12",
+  "version": "1.3.13",
   "description": "Weekly macro allocation tracker — shared web app with local publisher",
   "private": true,
   "main": "electron/main.js",
@@ -10,6 +10,7 @@
     "deploy": "wrangler deploy",
     "preview": "wrangler dev",
     "deploy:pages": "npx wrangler pages deploy docs",
+    "backfill:history": "node scripts/backfill_history_values.js",
     "publish:site": "node scripts/publish_site.js",
     "test": "jest"
   },

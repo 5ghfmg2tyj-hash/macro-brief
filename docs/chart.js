@@ -399,10 +399,12 @@
       subLine = "Representative index values · change vs prior week / 1 month ago / 1 year ago";
       rows = visible.map(a => {
         const cur = a.vals[i];
-        const prevWk = i > 0 ? a.vals[i-1] : null;
+        const prevWk = Array.isArray(a.wowVals) ? a.wowVals[i] : (i > 0 ? a.vals[i-1] : null);
+        const prevMo = Array.isArray(a.moVals) ? a.moVals[i] : a.mo;
+        const prevYr = Array.isArray(a.yrVals) ? a.yrVals[i] : a.yr;
         const wow = fmtDelta(cur, prevWk, a.unit);
-        const mom = fmtDelta(cur, a.mo,   a.unit);
-        const yoy = fmtDelta(cur, a.yr,   a.unit);
+        const mom = fmtDelta(cur, prevMo, a.unit);
+        const yoy = fmtDelta(cur, prevYr, a.unit);
         return `
           <span class="tt-sw" style="background:${a.color}"></span>
           <span class="tt-name"><strong>${a.label}</strong><br><span style="color:var(--muted);font-size:10px">${a.idx}</span></span>

@@ -431,7 +431,21 @@ function updateBriefIndex(userDocsRoot, docsRoot, slug, title, date, generatedAt
   fs.writeFileSync(userPath, JSON.stringify(out, null, 2) + "\n", "utf8");
 }
 
-function updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations) {
+function updateMarketHistoryPoint(asset, index, liveAsset) {
+  const references = {
+    vals: liveAsset?.value,
+    wowVals: liveAsset?.hist?.wow?.value,
+    moVals: liveAsset?.hist?.mom?.value,
+    yrVals: liveAsset?.hist?.yoy?.value,
+  };
+  for (const [field, rawValue] of Object.entries(references)) {
+    if (!Array.isArray(asset[field])) asset[field] = [];
+    while (asset[field].length <= index) asset[field].push(null);
+    asset[field][index] = Number.isFinite(rawValue) ? rawValue : null;
+  }
+}
+
+function updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations, liveJson) {
   const userPath   = path.join(userDocsRoot, "data", "history.json");
   const bundlePath = path.join(docsRoot,     "data", "history.json");
   let history;
@@ -454,6 +468,7 @@ function updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations)
       if (score !== undefined && VALID_SCORES.has(score)) {
         asset.alloc[asset.alloc.length - 1] = score;
       }
+      updateMarketHistoryPoint(asset, weeks.length - 1, liveJson?.assets?.[asset.key]);
     }
   } else {
     weeks.push(weekLabel);
@@ -461,6 +476,7 @@ function updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations)
     for (const asset of history.assets) {
       const score = allocations[asset.key];
       asset.alloc.push(VALID_SCORES.has(score) ? score : 0);
+      updateMarketHistoryPoint(asset, weeks.length - 1, liveJson?.assets?.[asset.key]);
     }
   }
 
@@ -497,7 +513,7 @@ async function generate({ docsRoot, userDocsRoot, liveJson, historyJson, provide
 
   writeBriefFile(userDocsRoot, slug, mergedBrief);
   updateBriefIndex(userDocsRoot, docsRoot, slug, title, slug, generatedAt);
-  updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations);
+  updateHistory(userDocsRoot, docsRoot, weekLabel, weekDate, allocations, liveJson);
 
   return { slug, title, date: slug, generatedAt };
 }
