@@ -2,6 +2,60 @@
   "_note": "Sorted newest-first. Each entry maps to briefs/<slug>.md. The scheduled-task append/overwrite rule applies here too: if today's run falls within ±5 days of the top entry's date, overwrite in place.",
   "briefs": [
     {
+      "slug": "2026-10-23",
+      "title": "Weekly Macro Brief — October 23, 2026",
+      "date": "2026-10-23",
+      "generatedAt": "2026-10-26T12:00:00Z"
+    },
+    {
+      "slug": "2026-10-16",
+      "title": "Weekly Macro Brief — October 16, 2026",
+      "date": "2026-10-16",
+      "generatedAt": "2026-10-26T12:00:00Z"
+    },
+    {
+      "slug": "2026-10-09",
+      "title": "Weekly Macro Brief — October 9, 2026",
+      "date": "2026-10-09",
+      "generatedAt": "2026-10-26T12:00:00Z"
+    },
+    {
+      "slug": "2026-10-02",
+      "title": "Weekly Macro Brief — October 2, 2026",
+      "date": "2026-10-02",
+      "generatedAt": "2026-10-26T12:00:00Z"
+    },
+    {
+      "slug": "2026-09-25",
+      "title": "Weekly Macro Brief — September 25, 2026",
+      "date": "2026-09-25",
+      "generatedAt": "2026-10-26T12:00:00Z"
+    },
+    {
+      "slug": "2026-09-18",
+      "title": "Weekly Macro Brief — September 18, 2026",
+      "date": "2026-09-18",
+      "generatedAt": "2026-10-26T12:00:00Z"
+    },
+    {
+      "slug": "2026-09-11",
+      "title": "Weekly Macro Brief — September 11, 2026",
+      "date": "2026-09-11",
+      "generatedAt": "2026-10-26T12:00:00Z"
+    },
+    {
+      "slug": "2026-09-04",
+      "title": "Weekly Macro Brief — September 4, 2026",
+      "date": "2026-09-04",
+      "generatedAt": "2026-10-26T12:00:00Z"
+    },
+    {
+      "slug": "2026-08-28",
+      "title": "Weekly Macro Brief — August 28, 2026",
+      "date": "2026-08-28",
+      "generatedAt": "2026-10-26T12:00:00Z"
+    },
+    {
       "slug": "2026-07-07",
       "title": "Weekly Macro Brief — July 7, 2026",
       "date": "2026-07-07",
