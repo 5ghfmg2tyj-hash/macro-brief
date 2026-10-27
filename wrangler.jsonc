@@ -1,6 +1,14 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "macro-brief",
-  "pages_build_output_dir": "./docs",
-  "compatibility_date": "2026-06-04"
+  "compatibility_date": "2026-06-05",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "docs"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
 }

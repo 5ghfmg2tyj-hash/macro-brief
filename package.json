@@ -7,6 +7,9 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --mac",
+    "test": "jest",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
     "deploy:pages": "npx wrangler pages deploy docs",
     "publish:site": "node scripts/publish_site.js",
     "test": "jest"
@@ -15,6 +18,8 @@
     "electron": "^35.0.0",
     "electron-builder": "^25.0.0",
     "jest": "^29.7.0",
+    "jsdom": "^25.0.0",
+    "wrangler": "^4.98.0"
     "jsdom": "^25.0.0"
   },
   "jest": {
