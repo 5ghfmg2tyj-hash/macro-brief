@@ -18,7 +18,7 @@ function response(body, json = true) {
 }
 
 test("retrospective brief archive is newest-first and every entry has a file", () => {
-  expect(index.briefs[0].slug).toBe("2026-10-23");
+  expect(index.briefs[0].slug).toBe("2026-11-09");
 
   const dates = index.briefs.map((brief) => brief.date);
   expect(dates).toEqual([...dates].sort().reverse());
@@ -27,7 +27,7 @@ test("retrospective brief archive is newest-first and every entry has a file", (
   }
 });
 
-test("brief page loads October 23 and lists all nine retrospectives", async () => {
+test("brief page loads November 9 and lists the complete recent archive", async () => {
   const html = fs.readFileSync(path.join(root, "docs/index.html"), "utf8");
   const liveJs = fs.readFileSync(path.join(root, "docs/live.js"), "utf8");
   const chartJs = fs.readFileSync(path.join(root, "docs/chart.js"), "utf8");
@@ -59,7 +59,7 @@ test("brief page loads October 23 and lists all nine retrospectives", async () =
   window.document.dispatchEvent(new window.Event("DOMContentLoaded"));
   await new Promise((resolve) => setTimeout(resolve, 40));
 
-  expect(window.document.getElementById("brief-title").textContent).toContain("October 23, 2026");
+  expect(window.document.getElementById("brief-title").textContent).toContain("November 9, 2026");
   const guide = window.document.querySelector(".allocation-guide").textContent.replace(/\s+/g, " ");
   expect(guide).toContain("Overweight (+1)");
   expect(guide).toContain("Neutral (0)");
@@ -72,11 +72,13 @@ test("brief page loads October 23 and lists all nine retrospectives", async () =
   expect(guide).toContain("valuation, yield, and carry");
   expect(guide).toContain("No single signal automatically determines");
   const links = [...window.document.querySelectorAll("#brief-history a")];
-  expect(links.filter((link) => link.dataset.slug >= "2026-08-28")).toHaveLength(9);
-  expect(window.document.getElementById("brief-body").textContent).toContain("Small caps rebounded");
+  expect(links.filter((link) => link.dataset.slug >= "2026-08-28")).toHaveLength(10);
+  expect(window.document.getElementById("brief-body").textContent).toContain("solid nominal growth with restrictive real rates");
   const recommendationTable = [...window.document.querySelectorAll("#brief-body table")]
-    .find((table) => table.textContent.includes("Money-flow signal"));
+    .find((table) => table.textContent.includes("Tactical score"));
   expect(recommendationTable).toBeTruthy();
-  expect(recommendationTable.textContent).toContain("Price / relative strength");
-  expect(recommendationTable.textContent).toContain("Macro, valuation, and risk signals");
+  expect(recommendationTable.textContent).toContain("7-day / 30-day trend");
+  expect(recommendationTable.textContent).toContain("Tactical score");
+  expect(window.document.getElementById("brief-body").textContent).toContain("Nasdaq / US Growth - Slight Underweight");
+  expect(window.document.getElementById("brief-body").textContent.toLowerCase()).toContain("data quality/confidence");
 });
