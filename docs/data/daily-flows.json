@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-17T01:38:30Z",
+  "updatedAt": "2026-11-17T05:03:42Z",
   "bootstrapVersion": 6,
   "series": [
     {
@@ -3731,6 +3731,22 @@
         "ig": null,
         "treas": null,
         "cash": null
+      }
+    },
+    {
+      "date": "2026-11-16",
+      "flows": {
+        "usLarge": -2.931,
+        "nasdaq": -1.487,
+        "usSmid": -0.352,
+        "intlDev": -0.068,
+        "em": -0.074,
+        "gold": -0.171,
+        "bitcoin": -0.128,
+        "hy": -0.107,
+        "ig": -0.107,
+        "treas": 0.159,
+        "cash": 0.176
       }
     },
     {
