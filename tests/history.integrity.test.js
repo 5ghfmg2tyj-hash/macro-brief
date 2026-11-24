@@ -5,9 +5,9 @@ const path = require("path");
 const { JSDOM } = require("jsdom");
 const history = require("../docs/data/history.json");
 
-test("published allocation history is aligned and current through November 16", () => {
+test("published allocation history is aligned and current through November 23", () => {
   expect(history.weeks).toHaveLength(history.weekDates.length);
-  expect(history.weekDates.at(-1)).toBe("2026-11-16");
+  expect(history.weekDates.at(-1)).toBe("2026-11-23");
 
   for (const asset of history.assets) {
     expect(asset.alloc).toHaveLength(history.weekDates.length);
@@ -20,11 +20,11 @@ test("published allocation history is aligned and current through November 16", 
 
   const nasdaq = history.assets.find((asset) => asset.key === "nasdaq");
   expect(nasdaq).toMatchObject({ idx: "Nasdaq-100", flowIdx: expect.stringContaining("QQQ + QQQM") });
-  expect(nasdaq.alloc.slice(0, -3).every((score) => score === null)).toBe(true);
-  expect(nasdaq.alloc.slice(-3)).toEqual([-0.5, -0.5, -1]);
+  expect(nasdaq.alloc.slice(0, -4).every((score) => score === null)).toBe(true);
+  expect(nasdaq.alloc.slice(-4)).toEqual([-0.5, -0.5, -1, -1]);
 });
 
-test("tilt chart visibly extends through November 16", () => {
+test("tilt chart visibly extends through November 23", () => {
   const html = fs.readFileSync(path.resolve(__dirname, "../docs/index.html"), "utf8");
   const chartJs = fs.readFileSync(path.resolve(__dirname, "../docs/chart.js"), "utf8");
   const dom = new JSDOM(html, { runScripts: "dangerously" });
@@ -32,12 +32,12 @@ test("tilt chart visibly extends through November 16", () => {
   dom.window.eval(chartJs);
   dom.window.Chart.init({ history, flows: {}, dailyFlows: { series: [] } });
 
-  expect(dom.window.document.getElementById("subtitle").textContent).toContain("Nov 16");
+  expect(dom.window.document.getElementById("subtitle").textContent).toContain("Nov 23");
   const labels = [...dom.window.document.querySelectorAll("#chart text")].map((node) => node.textContent);
-  expect(labels).toContain("Nov 16");
+  expect(labels).toContain("Nov 23");
 
   const nasdaqLine = dom.window.document.querySelector('[data-series-key="nasdaq"]');
-  expect(nasdaqLine.getAttribute("d")).toMatch(/^M[\d.]+,[\d.]+(?: L[\d.]+,[\d.]+){2}$/);
+  expect(nasdaqLine.getAttribute("d")).toMatch(/^M[\d.]+,[\d.]+(?: L[\d.]+,[\d.]+){3}$/);
   expect(dom.window.document.querySelector('[data-point-key="nasdaq"]')).not.toBeNull();
 
   const points = [...dom.window.document.querySelectorAll("#chart path")]
@@ -53,7 +53,7 @@ test("tilt chart visibly extends through November 16", () => {
     clientY: 300,
   }));
   const tooltip = tooltipNode.textContent.replace(/\s+/g, " ");
-  expect(tooltip).toContain("Nov 16");
+  expect(tooltip).toContain("Nov 23");
   expect(tooltip).toContain("WoW");
   expect(tooltip).toContain("1M");
   expect(tooltip).toContain("1Y");
